@@ -1,51 +1,47 @@
 # Password Manager (Projekt Grupowy)
 
-Aplikacja desktopowa do bezpiecznego zarządzania hasłami, stworzona przy użyciu Python i PyQt5.
+Aplikacja do bezpiecznego zarządzania hasłami napisana w Pythonie z użyciem biblioteki PyQt5.
 
-## Przegląd
+## O projekcie
 
-Projekt ma na celu dostarczenie użytkownikom bezpiecznego i intuicyjnego narzędzia do przechowywania haseł. Aplikacja oferuje nowoczesny interfejs użytkownika (Dark Mode), analizę siły haseł oraz kategoryzację wpisów.
+Program pozwala bezpiecznie przechowywać dane logowania do różnych serwisów. Interfejs jest prosty i czytelny, a dodatkowe narzędzia pomagają zadbać o silne hasła.
 
-![Security Dashboard](Project/assets/security_dashboard_concept.png)
-*(Powyżej: Koncept panelu bezpieczeństwa)*
+### Widok główny
+![Lista haseł](Project/assets/allpasswords_panel.png)
 
-## Funkcjonalności
+### Panel bezpieczeństwa
+![Dashboard bezpieczeństwa](Project/assets/security_panel0.png)
 
-*   **Bezpieczne logowanie:** Panel dostępu chroniony hasłem głównym.
-*   **Zarządzanie hasłami:** Dodawanie, przeglądanie i edycja haseł.
-*   **Analiza bezpieczeństwa:**
-    *   Wizualny wskaźnik siły hasła (Security Score).
-    *   Wykrywanie słabych i powtarzających się haseł.
-    *   Estymacja czasu potrzebnego na złamanie hasła.
-*   **Ulubione:** Możliwość oznaczania najważniejszych kont gwiazdką.
-*   **Nowoczesny Sidebar:** Intuicyjna nawigacja z licznikami powiadomień.
+### Szczegóły i kopiowanie
+![Szczegóły hasła](Project/assets/allpasswords_details_copypassword.png)
 
-## Instalacja i Uruchomienie
+## Główne funkcje
 
-1.  **Wymagania:**
-    *   Python 3.8+
-    *   Biblioteki z pliku `requirements.txt` (głównie `PyQt5`, `zxcvbn`).
+* Logowanie hasłem głównym do aplikacji.
+* Przechowywanie haseł w lokalnej bazie.
+* Analiza siły haseł i informacja o czasie potrzebnym na ich złamanie.
+* Możliwość dodawania haseł do ulubionych.
+* Wygodne kopiowanie haseł jednym przyciskiem.
 
-2.  **Instalacja zależności:**
-    ```bash
-    pip install PyQt5 zxcvbn
-    ```
+## Jak uruchomić projekt
 
-3.  **Uruchomienie:**
-    Przejdź do katalogu projektu i uruchom plik główny:
-    ```bash
-    python Project/src/main.py
-    ```
+1. Musisz mieć zainstalowanego Pythona (wersja 3.8 lub nowsza).
+2. Zainstaluj potrzebne biblioteki komendą:
+   ```bash
+   pip install PyQt5 zxcvbn
+   ```
+3. Uruchom program wpisując:
+   ```bash
+   python Project/src/main.py
+   ```
 
-## Struktura Projektu
+## Budowa folderów
 
-*   **src/** - Kod źródłowy aplikacji (interfejs, logika).
-*   **config/** - Pliki konfiguracyjne.
-*   **data/** - Lokalne pliki danych (hasła).
-*   **assets/** - Grafiki i zasoby wizualne.
+* src: tutaj jest cały kod programu.
+* config: pliki z ustawieniami.
+* data: tutaj trzymane są Twoje hasła.
+* assets: grafiki używane w aplikacji.
 
-## Status Rozwoju
+## Co dalej
 
-Projekt jest w fazie aktywnego rozwoju.
-*   **Zrobione:** Podstawowy interfejs, nawigacja, dashboard bezpieczeństwa.
-*   **W planach:** Implementacja sekcji Vault, Settings i Profile, poprawki UI.
+Obecnie pracujemy nad dodaniem pełnej obsługi profilu użytkownika, ustawień aplikacji oraz bezpiecznego schowka (Vault).
