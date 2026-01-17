@@ -1,32 +1,9 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-                             QFrame, QSizePolicy, QSpacerItem)
+"""Sidebar component with navigation buttons."""
+
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
+from widgets.nav_button_widget import NavButtonWidget
 
-class NavButtonWidget(QWidget):
-    """Custom navigation button with badge and icon."""
-    def __init__(self, text, icon_char, count, is_active=False):
-        super().__init__()
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 2, 0, 2)
-        
-        self.btn = QPushButton(f" {icon_char}   {text}")
-        self.btn.setProperty("class", "nav-btn")
-        self.btn.setCheckable(True)
-        self.btn.setChecked(is_active)
-        self.btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        
-        self.badge = QLabel(str(count) if count > 0 else "")
-        self.badge.setProperty("class", "badge")
-        if is_active:
-            self.badge.setStyleSheet("color: white;") 
-
-        self.btn_layout = QHBoxLayout(self.btn)
-        self.btn_layout.setContentsMargins(10, 0, 10, 0)
-        self.btn_layout.addStretch()
-        self.btn_layout.addWidget(self.badge)
-        
-        layout.addWidget(self.btn)
-        self.setLayout(layout)
 
 class Sidebar(QFrame):
     """Sidebar widget with navigation."""

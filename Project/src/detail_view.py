@@ -1,27 +1,38 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QFrame, QLineEdit, QSizePolicy, QSpacerItem, QTextEdit,
-                             QMessageBox, QInputDialog, QToolTip, QGraphicsOpacityEffect)
-from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
-from PyQt5.QtGui import QFont, QIcon, QClipboard, QGuiApplication, QColor
-import json
-import os
-from styles import TEXT_PRIMARY
+"""Detail View - Displays detailed information about a password entry."""
 
-# Config file path
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../config/config.json')
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+                             QPushButton, QFrame, QLineEdit, QSizePolicy, QTextEdit)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QGuiApplication
+from widgets.notification_popup import NotificationPopup
+from widgets.master_password_overlay import MasterPasswordOverlay
+from services.authentication_service import AuthenticationService
+from styles import TEXT_PRIMARY
+from constants import MSG_COPIED
+
+
 
 class DetailView(QWidget):
+    """Detail view for displaying and editing password information."""
+    
     def __init__(self, switch_back_callback, favorite_callback=None):
+        """Initialize detail view.
+        
+        Args:
+            switch_back_callback: Callback to return to previous view.
+            favorite_callback: Callback to toggle favorite status.
+        """
         super().__init__()
         self.switch_back_callback = switch_back_callback
-        self.favorite_callback = favorite_callback  # Callback to save favorite to file
-        self.current_name = ""  # Track current entry name
+        self.favorite_callback = favorite_callback
+        self.current_name = ""
         
         # State variables
-        self.is_favorite = True  # Default to favorited
+        self.is_favorite = True
         self.password_visible = False
-        self.is_authenticated = False # Session authentication state
-        self.actual_password = "SecureP@ssw0rd123"  # Simulated password
+        self.auth_service = AuthenticationService()
+        self.actual_password = "SecureP@ssw0rd123"
+
         
         # Główny layout
         self.main_layout = QVBoxLayout(self)
@@ -178,52 +189,68 @@ class DetailView(QWidget):
         layout.addLayout(row)
         self.main_layout.addWidget(container)
     
+
     def request_master_password(self, on_success):
-        """Show embedded master password overlay if not authenticated."""
-        if self.is_authenticated:
+        """Show embedded master password overlay if not authenticated.
+        
+        Args:
+            on_success: Callback function to execute on successful authentication.
+        """
+        if self.auth_service.is_authenticated():
             on_success()
             return
             
         def auth_success_wrapper():
-            self.is_authenticated = True
+            self.auth_service.set_authenticated(True)
             on_success()
             
-        overlay = MasterPasswordOverlay(self, auth_success_wrapper)
+        overlay = MasterPasswordOverlay(self, auth_success_wrapper, self.auth_service)
         overlay.show()
     
     def toggle_password_visibility_with_auth(self):
         """Toggle password visibility with master password verification."""
         if not self.password_visible:
-            # Need to verify before showing
             self.request_master_password(self._show_password)
         else:
-            # Just hide it
             self.password_visible = False
             self.password_lbl.setText("•••••••••••••")
             self.eye_btn.setText("👁")
+
     
     def _show_password(self):
         self.password_visible = True
         self.password_lbl.setText(self.actual_password)
         self.eye_btn.setText("👁‍🗨")
     
+
     def copy_password_with_auth(self):
         """Copy password to clipboard with master password verification."""
         self.request_master_password(self._copy_password_action)
     
     def _copy_password_action(self):
+        """Copy password action after authentication."""
         QGuiApplication.clipboard().setText(self.actual_password)
-        self.show_notification("Copied!")
+        self.show_notification(MSG_COPIED)
     
     def copy_with_notification(self, text, field_name):
-        """Copy text and show notification."""
+        """Copy text and show notification.
+        
+        Args:
+            text: Text to copy to clipboard.
+            field_name: Name of field being copied.
+        """
         QGuiApplication.clipboard().setText(text)
-        self.show_notification("Copied!")
+        self.show_notification(MSG_COPIED)
     
     def show_notification(self, message):
-        """Show a temporary notification message using a custom popup."""
+        """Show a temporary notification message using a custom popup.
+        
+        Args:
+            message: Message to display.
+        """
         popup = NotificationPopup(message, self)
         popup.show()
+
 
     def toggle_favorite(self):
         """Toggle the favorite state and update star appearance."""
@@ -273,10 +300,20 @@ class DetailView(QWidget):
             self.password_lbl.setText("•••••••••••••")
             self.eye_btn.setText("👁")
 
+
     def update_data(self, title, subtitle, color, letter, favorite=False):
-        self.current_name = title  # Store for callback
+        """Update detail view with new password data.
+        
+        Args:
+            title: Password name/title.
+            subtitle: Password email/subtitle.
+            color: Icon background color.
+            letter: Icon letter.
+            favorite: Whether password is marked as favorite.
+        """
+        self.current_name = title
         self.is_favorite = favorite
-        self.is_authenticated = False # Reset auth when switching to new entry
+        self.auth_service.set_authenticated(False)  # Reset auth when switching to new entry
         self.update_star_style()
         
         self.title_label.setText(title)
@@ -289,15 +326,16 @@ class DetailView(QWidget):
             font-weight: bold;
         """)
         
-        # Symulacja danych szczegółowych
+        # Simulated data
         self.username_lbl.setText(subtitle)
         self.link_label.setText(f"https://{title.lower()}.com")
         self.website_lbl.setText(f"https://{title.lower()}.com")
         
-        # Reset password visibility when switching entries
+        # Reset password visibility
         self.password_visible = False
         self.password_lbl.setText("•••••••••••••")
         self.eye_btn.setText("👁")
+
 
 class NotificationPopup(QWidget):
     """Custom toast notification with animation (Embedded Overlay)."""

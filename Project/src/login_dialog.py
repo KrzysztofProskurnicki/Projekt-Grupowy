@@ -1,16 +1,21 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton)
-from PyQt5.QtCore import Qt
-import os
-import json
+"""Login dialog for user authentication."""
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../config/config.json')
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtCore import Qt
+from services.authentication_service import AuthenticationService
+from constants import MSG_INCORRECT_PASSWORD, MSG_ENTER_USERNAME
+
 
 class LoginDialog(QWidget):
     """Custom styled login dialog matching app theme."""
+    
     def __init__(self):
+        """Initialize login dialog."""
         super().__init__()
         self.authenticated = False
+        self.auth_service = AuthenticationService()
         self.init_ui()
+
     
     def init_ui(self):
         self.setWindowTitle("Password Manager")
@@ -100,26 +105,21 @@ class LoginDialog(QWidget):
         login_btn.clicked.connect(self.verify)
         layout.addWidget(login_btn)
         
+    
     def verify(self):
+        """Verify user credentials."""
         username = self.username_input.text().strip()
         password = self.password_input.text()
         
         if not username:
-             self.error_label.setText("Please enter username")
-             self.username_input.setFocus()
-             return
+            self.error_label.setText(MSG_ENTER_USERNAME)
+            self.username_input.setFocus()
+            return
 
-        # Load config to check password
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                config = json.load(f)
-                correct_password = config.get('master_password', 'admin') # Default is admin
-        except FileNotFoundError:
-            correct_password = 'admin'
-            
-        if password == correct_password:
+        if self.auth_service.verify_master_password(password):
             self.authenticated = True
             self.close()
         else:
-            self.error_label.setText("Invalid password")
+            self.error_label.setText(MSG_INCORRECT_PASSWORD)
             self.password_input.clear()
+

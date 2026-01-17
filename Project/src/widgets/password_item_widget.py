@@ -1,0 +1,101 @@
+"""Password Item Widget - Single card item for password list."""
+
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSizePolicy
+from PyQt5.QtCore import Qt
+from styles import CARD_BG, TEXT_PRIMARY, TEXT_SECONDARY
+
+
+class PasswordItemWidget(QWidget):
+    """Widget representing a single password card in the list."""
+    
+    def __init__(self, title: str, subtitle: str, color: str, letter: str, favorite: bool = False):
+        """Initialize password item widget.
+        
+        Args:
+            title: Password name/title.
+            subtitle: Password email/subtitle.
+            color: Icon background color.
+            letter: Icon letter.
+            favorite: Whether password is marked as favorite.
+        """
+        super().__init__()
+        
+        # Container Widget (Transparent, holds margins)
+        container_layout = QVBoxLayout(self)
+        container_layout.setContentsMargins(0, 5, 0, 5)
+        container_layout.setSpacing(0)
+        
+        # Card Frame (Visible, holds content)
+        card_frame = QFrame()
+        card_frame.setMinimumHeight(80)
+        card_frame.setObjectName("cardFrame")
+        card_frame.setStyleSheet(f"""
+            QFrame#cardFrame {{
+                background-color: {CARD_BG};
+                border-radius: 12px;
+            }}
+            QFrame#cardFrame:hover {{
+                background-color: #3a3a3c;
+            }}
+        """)
+        
+        # Content Layout inside Card
+        hbox = QHBoxLayout(card_frame)
+        hbox.setContentsMargins(15, 10, 15, 10)
+        hbox.setSpacing(15)
+        
+        # Icon Circle
+        icon_lbl = QLabel(letter)
+        icon_lbl.setFixedSize(48, 48)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(f"""
+            background-color: {color};
+            color: white;
+            border-radius: 24px;
+            font-weight: bold;
+            font-size: 22px;
+            border: none;
+        """)
+        hbox.addWidget(icon_lbl)
+        
+        # Text Content
+        text_container = QWidget()
+        vbox = QVBoxLayout(text_container)
+        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setSpacing(4)
+        vbox.setAlignment(Qt.AlignVCenter)
+        
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(
+            f"font-size: 24px; font-weight: 600; color: {TEXT_PRIMARY}; "
+            f"border: none; background: transparent;"
+        )
+        
+        subtitle_lbl = QLabel(subtitle)
+        subtitle_lbl.setStyleSheet(
+            f"font-size: 16px; color: {TEXT_SECONDARY}; "
+            f"border: none; background: transparent;"
+        )
+        
+        vbox.addWidget(title_lbl)
+        vbox.addWidget(subtitle_lbl)
+        
+        hbox.addWidget(text_container)
+        hbox.addStretch()
+        
+        # Favorite Icon
+        if favorite:
+            fav_lbl = QLabel("⭐")
+            fav_lbl.setStyleSheet("font-size: 16px; background: transparent; border: none;")
+            hbox.addWidget(fav_lbl)
+            
+        # Chevron
+        chevron = QLabel("›")
+        chevron.setStyleSheet(
+            f"color: {TEXT_SECONDARY}; font-size: 24px; font-weight: bold; "
+            f"background: transparent; border: none;"
+        )
+        hbox.addWidget(chevron)
+        
+        # Add Card to Container
+        container_layout.addWidget(card_frame)
