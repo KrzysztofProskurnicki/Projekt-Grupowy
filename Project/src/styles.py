@@ -30,7 +30,7 @@ FONT_SIZE_XLARGE = "24px"
 FONT_SIZE_TITLE = "32px"
 
 # ===== REUSABLE STYLES =====
-CARD_STYLE = f"QFrame {{ background-color: {CARD_BG}; border-radius: 12px; }}"
+CARD_STYLE = f"background-color: {CARD_BG}; border-radius: 12px;"
 SECTION_TITLE_STYLE = f"font-size: {FONT_SIZE_MEDIUM}; font-weight: bold; color: {TEXT_PRIMARY};"
 PROGRESS_BAR_STYLE = f"""
     QProgressBar {{ background-color: {BORDER_COLOR}; border-radius: 4px; height: 20px; text-align: center; color: {TEXT_PRIMARY}; }}

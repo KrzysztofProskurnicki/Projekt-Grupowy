@@ -10,9 +10,10 @@ class AuthenticationService:
         """Initialize authentication service."""
         self.data_manager = DataManager()
         self._is_authenticated = False
+        self._current_user = None
     
     def verify_master_password(self, password: str) -> bool:
-        """Verify if provided password matches master password.
+        """Verify if provided password matches master password (legacy).
         
         Args:
             password: Password to verify.
@@ -39,6 +40,14 @@ class AuthenticationService:
         """
         return self._is_authenticated
     
+    def get_current_user(self) -> str:
+        """Get currently authenticated username.
+        
+        Returns:
+            Username string or None.
+        """
+        return self._current_user
+    
     def set_authenticated(self, status: bool) -> None:
         """Set authentication status.
         
@@ -47,20 +56,36 @@ class AuthenticationService:
         """
         self._is_authenticated = status
     
-    def authenticate(self, password: str) -> bool:
-        """Authenticate user with password and set session status.
+    def authenticate(self, username: str, password: str) -> bool:
+        """Authenticate user with username and password against user profiles.
         
         Args:
+            username: Username to authenticate.
             password: Password to authenticate with.
             
         Returns:
             True if authentication successful, False otherwise.
         """
-        if self.verify_master_password(password):
+        user = self.data_manager.find_user(username)
+        if user and user.get('password') == password:
             self._is_authenticated = True
+            self._current_user = username
             return True
         return False
+    
+    def register(self, username: str, password: str) -> bool:
+        """Register a new user profile.
+        
+        Args:
+            username: New username.
+            password: New password.
+            
+        Returns:
+            True if registration successful, False if username already taken.
+        """
+        return self.data_manager.register_user(username, password)
     
     def logout(self) -> None:
         """Clear authentication status."""
         self._is_authenticated = False
+        self._current_user = None

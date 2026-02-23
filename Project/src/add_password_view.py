@@ -1,0 +1,284 @@
+"""Add Password View - Form for adding new password entries."""
+
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QTextEdit, QPushButton, QFrame)
+from PyQt5.QtCore import Qt, pyqtSignal
+from styles import *
+
+
+class AddPasswordView(QWidget):
+    """Form view for adding a new password entry."""
+    
+    password_created = pyqtSignal(dict)  # Emits the new password data
+    back_clicked = pyqtSignal()
+    
+    def __init__(self):
+        """Initialize the add password form."""
+        super().__init__()
+        self.init_ui()
+    
+    def init_ui(self):
+        """Build the add password form UI."""
+        self.setStyleSheet(f"background-color: {DARK_BG};")
+        
+        # Main layout
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+        
+        # Header bar
+        header_widget = QWidget()
+        header_widget.setStyleSheet(f"background-color: {DARK_BG}; border-bottom: 1px solid #38383a;")
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(24, 16, 24, 16)
+        
+        # Back button
+        back_btn = QPushButton("← Back")
+        back_btn.setCursor(Qt.PointingHandCursor)
+        back_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {COLOR_BLUE};
+                border: none;
+                font-size: 16px;
+                font-weight: 600;
+                padding: 8px 16px;
+            }}
+            QPushButton:hover {{
+                color: #409cff;
+            }}
+        """)
+        back_btn.clicked.connect(self._on_back)
+        header_layout.addWidget(back_btn)
+        
+        header_layout.addStretch()
+        
+        # Title
+        title_label = QLabel("Add New Password")
+        title_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {TEXT_PRIMARY}; background: transparent;")
+        title_label.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(title_label)
+        
+        header_layout.addStretch()
+        
+        # Spacer to balance the back button
+        spacer = QWidget()
+        spacer.setFixedWidth(80)
+        header_layout.addWidget(spacer)
+        
+        outer_layout.addWidget(header_widget)
+        
+        # Scrollable form content
+        form_container = QWidget()
+        form_layout = QVBoxLayout(form_container)
+        form_layout.setContentsMargins(40, 30, 40, 30)
+        form_layout.setSpacing(0)
+        
+        # Center the form with max width
+        form_card = QFrame()
+        form_card.setMaximumWidth(600)
+        form_card.setStyleSheet(f"""
+            background-color: {CARD_BG};
+            border-radius: 16px;
+            border: 1px solid {BORDER_COLOR};
+        """)
+        card_layout = QVBoxLayout(form_card)
+        card_layout.setContentsMargins(32, 32, 32, 32)
+        card_layout.setSpacing(20)
+        
+        # --- Website field ---
+        website_label = QLabel("Website")
+        website_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        card_layout.addWidget(website_label)
+        
+        self.website_input = QLineEdit()
+        self.website_input.setPlaceholderText("e.g. github.com")
+        self.website_input.setStyleSheet(self._input_style())
+        card_layout.addWidget(self.website_input)
+        
+        # --- Username field ---
+        username_label = QLabel("Username")
+        username_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        card_layout.addWidget(username_label)
+        
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText("e.g. john.doe@email.com")
+        self.username_input.setStyleSheet(self._input_style())
+        card_layout.addWidget(self.username_input)
+        
+        # --- Password field ---
+        password_label = QLabel("Password")
+        password_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        card_layout.addWidget(password_label)
+        
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Enter password")
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setStyleSheet(self._input_style())
+        card_layout.addWidget(self.password_input)
+        
+        # --- Notes field ---
+        notes_label = QLabel("Notes")
+        notes_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        card_layout.addWidget(notes_label)
+        
+        self.notes_input = QTextEdit()
+        self.notes_input.setPlaceholderText("Optional notes...")
+        self.notes_input.setFixedHeight(100)
+        self.notes_input.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #3a3a3c;
+                color: {TEXT_PRIMARY};
+                border-radius: 8px;
+                padding: 12px;
+                border: 1px solid {BORDER_COLOR};
+                font-size: 14px;
+            }}
+            QTextEdit:focus {{
+                border: 1px solid {COLOR_BLUE};
+            }}
+        """)
+        card_layout.addWidget(self.notes_input)
+        
+        # Error / status label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: #ff453a; font-size: 14px; background: transparent; border: none;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(self.status_label)
+        
+        card_layout.addSpacing(10)
+        
+        # --- Buttons row ---
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(12)
+        
+        # Back button (inside form)
+        form_back_btn = QPushButton("Back")
+        form_back_btn.setCursor(Qt.PointingHandCursor)
+        form_back_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #3a3a3c;
+                color: {TEXT_PRIMARY};
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-size: 16px;
+                font-weight: 600;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: #48484a;
+            }}
+            QPushButton:pressed {{
+                background-color: {CARD_BG};
+            }}
+        """)
+        form_back_btn.clicked.connect(self._on_back)
+        btn_layout.addWidget(form_back_btn)
+        
+        # Create button
+        create_btn = QPushButton("Create")
+        create_btn.setCursor(Qt.PointingHandCursor)
+        create_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLOR_GREEN};
+                color: white;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-size: 16px;
+                font-weight: 600;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: #28b84c;
+            }}
+            QPushButton:pressed {{
+                background-color: #1f9e3e;
+            }}
+        """)
+        create_btn.clicked.connect(self._on_create)
+        btn_layout.addWidget(create_btn)
+        
+        card_layout.addLayout(btn_layout)
+        
+        # Center the card in the form area
+        center_layout = QHBoxLayout()
+        center_layout.addStretch()
+        center_layout.addWidget(form_card)
+        center_layout.addStretch()
+        
+        form_layout.addLayout(center_layout)
+        form_layout.addStretch()
+        
+        outer_layout.addWidget(form_container)
+    
+    def _input_style(self) -> str:
+        """Return shared input field style."""
+        return f"""
+            QLineEdit {{
+                background-color: #3a3a3c;
+                color: {TEXT_PRIMARY};
+                border-radius: 8px;
+                padding: 12px;
+                border: 1px solid {BORDER_COLOR};
+                font-size: 14px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {COLOR_BLUE};
+            }}
+        """
+    
+    def _on_back(self):
+        """Handle back button click."""
+        self._clear_form()
+        self.back_clicked.emit()
+    
+    def _on_create(self):
+        """Validate and create the new password entry."""
+        website = self.website_input.text().strip()
+        username = self.username_input.text().strip()
+        password = self.password_input.text()
+        notes = self.notes_input.toPlainText().strip()
+        
+        # Validate required fields
+        if not website:
+            self.status_label.setText("Website is required")
+            self.website_input.setFocus()
+            return
+        
+        if not username:
+            self.status_label.setText("Username is required")
+            self.username_input.setFocus()
+            return
+        
+        if not password:
+            self.status_label.setText("Password is required")
+            self.password_input.setFocus()
+            return
+        
+        # Determine color based on first letter
+        colors = ["#24292e", "#db4437", "#e50914", "#232f3e", "#1db954",
+                  "#0077b5", "#0061ff", "#1da1f2", "#555555", "#003087",
+                  "#00a4ef", "#ff0000", "#ff9f0a", "#bf5af2", "#30d158"]
+        color = colors[hash(website) % len(colors)]
+        
+        # Build password entry
+        new_entry = {
+            "name": website,
+            "email": username,
+            "password": password,
+            "notes": notes,
+            "color": color,
+            "weak_password": len(password) < 8,
+            "favorite": False
+        }
+        
+        self.password_created.emit(new_entry)
+        self._clear_form()
+    
+    def _clear_form(self):
+        """Clear all form fields."""
+        self.website_input.clear()
+        self.username_input.clear()
+        self.password_input.clear()
+        self.notes_input.clear()
+        self.status_label.clear()

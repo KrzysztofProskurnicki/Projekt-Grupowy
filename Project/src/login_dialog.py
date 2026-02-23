@@ -13,13 +13,14 @@ class LoginDialog(QWidget):
         """Initialize login dialog."""
         super().__init__()
         self.authenticated = False
+        self.logged_in_username = None
         self.auth_service = AuthenticationService()
         self.init_ui()
 
     
     def init_ui(self):
         self.setWindowTitle("Password Manager")
-        self.setFixedSize(450, 480)  # Increased height for new field
+        self.setFixedSize(450, 530)
         self.setStyleSheet("""
             QWidget {
                 background-color: #1c1c1e;
@@ -38,7 +39,7 @@ class LoginDialog(QWidget):
             QLineEdit:focus {
                 border: 1px solid #0a84ff;
             }
-            QPushButton {
+            QPushButton#loginBtn {
                 background-color: #0a84ff;
                 color: white;
                 border-radius: 8px;
@@ -47,10 +48,10 @@ class LoginDialog(QWidget):
                 font-weight: 600;
                 border: none;
             }
-            QPushButton:hover {
+            QPushButton#loginBtn:hover {
                 background-color: #409cff;
             }
-            QPushButton:pressed {
+            QPushButton#loginBtn:pressed {
                 background-color: #0066cc;
             }
         """)
@@ -79,7 +80,7 @@ class LoginDialog(QWidget):
         
         layout.addSpacing(10)
         
-        # Username input (NEW)
+        # Username input
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Username")
         layout.addWidget(self.username_input)
@@ -101,13 +102,37 @@ class LoginDialog(QWidget):
         
         # Login button
         login_btn = QPushButton("Unlock")
+        login_btn.setObjectName("loginBtn")
         login_btn.setCursor(Qt.PointingHandCursor)
         login_btn.clicked.connect(self.verify)
         layout.addWidget(login_btn)
         
+        # Create Account button
+        create_btn = QPushButton("Create Account")
+        create_btn.setCursor(Qt.PointingHandCursor)
+        create_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #0a84ff;
+                border: 1px solid #0a84ff;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: rgba(10, 132, 255, 0.1);
+            }
+            QPushButton:pressed {
+                background-color: rgba(10, 132, 255, 0.2);
+            }
+        """)
+        create_btn.clicked.connect(self.open_register)
+        layout.addWidget(create_btn)
+
     
     def verify(self):
-        """Verify user credentials."""
+        """Verify user credentials against user profiles."""
         username = self.username_input.text().strip()
         password = self.password_input.text()
         
@@ -116,10 +141,17 @@ class LoginDialog(QWidget):
             self.username_input.setFocus()
             return
 
-        if self.auth_service.verify_master_password(password):
+        if self.auth_service.authenticate(username, password):
             self.authenticated = True
+            self.logged_in_username = username
             self.close()
         else:
             self.error_label.setText(MSG_INCORRECT_PASSWORD)
             self.password_input.clear()
-
+    
+    def open_register(self):
+        """Open registration dialog."""
+        from register_dialog import RegisterDialog
+        self.register_dialog = RegisterDialog(login_dialog=self)
+        self.register_dialog.show()
+        self.hide()

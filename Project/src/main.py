@@ -4,8 +4,8 @@ import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
                              QListWidgetItem, QPushButton, QStackedWidget,
-                             QInputDialog, QFrame)
-from PyQt5.QtCore import Qt
+                             QFrame)
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
 
@@ -19,23 +19,32 @@ from security_dashboard import SecurityView
 from detail_view import DetailView
 from services.password_service import PasswordService
 from widgets.password_item_widget import PasswordItemWidget
+from add_password_view import AddPasswordView
 
 
 
 class MainWindow(QMainWindow):
     """Główne okno aplikacji."""
     
-    def __init__(self):
-        """Inicjalizuj główne okno."""
+    logout_signal = pyqtSignal()
+    
+    def __init__(self, username: str):
+        """Inicjalizuj główne okno dla zalogowanego użytkownika.
+        
+        Args:
+            username: Nazwa zalogowanego użytkownika.
+        """
         super().__init__()
+        self._username = username
+        
         # Ustawienia okna
         self.setWindowTitle(WINDOW_TITLE)
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
-        # Inicjalizuj serwisy
-        self.password_service = PasswordService()  # Serwis zarządzający hasłami
-        self.current_filter = FILTER_ALL  # Aktualny filtr listy ('all'/'favorites'/'security')
+        # Inicjalizuj serwisy (scoped to user)
+        self.password_service = PasswordService(username)
+        self.current_filter = FILTER_ALL
         
         # Główny kontener
         main_widget = QWidget()
@@ -47,8 +56,9 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         
         # --- SIDEBAR (Left side) ---
-        self.sidebar = Sidebar()
+        self.sidebar = Sidebar(username=username)
         self.sidebar.nav_clicked.connect(self.handle_nav_click)
+        self.sidebar.logout_clicked.connect(self._on_logout)
         
         # --- CONTENT (Right side) ---
         content_area = QWidget()
@@ -80,7 +90,7 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
         
         # Add Button
-        add_btn = QPushButton(" + New Item ")
+        add_btn = QPushButton(" + Add ")
         add_btn.setStyleSheet(
             "QPushButton {"
             "    background-color: #0a84ff;"
@@ -92,7 +102,7 @@ class MainWindow(QMainWindow):
             "}"
             "QPushButton:hover { background-color: #0077ea; }"
         )
-        add_btn.clicked.connect(self.add_new_item)
+        add_btn.clicked.connect(self.show_add_form)
         header_layout.addWidget(add_btn)
         
         list_layout.addWidget(header_widget)
@@ -130,6 +140,12 @@ class MainWindow(QMainWindow):
         self.page_profile.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
         self.stacked_widget.addWidget(self.page_profile)  # Index 5
         
+        # Add Password Form Page
+        self.page_add_password = AddPasswordView()
+        self.page_add_password.password_created.connect(self.on_password_created)
+        self.page_add_password.back_clicked.connect(self.show_list)
+        self.stacked_widget.addWidget(self.page_add_password)  # Index 6
+        
         content_layout.addWidget(self.stacked_widget)
         
         # Initial load
@@ -140,6 +156,11 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(content_area)
 
+    
+    def _on_logout(self):
+        """Handle logout - emit signal and close window."""
+        self.logout_signal.emit()
+        self.close()
     
     def load_data(self):
         """Load password data - delegated to service (deprecated)."""
@@ -286,7 +307,6 @@ class MainWindow(QMainWindow):
     
     def handle_nav_click(self, index):
         """Handle navigation button click from sidebar."""
-        # Index based switch using constants
         if index == NAV_INDEX_ALL_PASSWORDS:
             self.current_filter = FILTER_ALL
             self.refresh_list()
@@ -311,22 +331,20 @@ class MainWindow(QMainWindow):
         self.password_service.toggle_favorite(name, is_favorite)
         self.update_badges()
         
-    def add_new_item(self):
-        """Add new password item (Demo)."""
-        name, ok = QInputDialog.getText(self, "New Password", "Account Name:")
-        if ok and name:
-            new_entry = {
-                "name": name,
-                "email": "username@example.com",
-                "color": "#ff9f0a",
-                "weak_password": True, 
-                "favorite": False
-            }
-            self.password_service.add_password(new_entry)
-            self.refresh_list()
-            self.update_badges()
+    def show_add_form(self):
+        """Show the add password form."""
+        self.stacked_widget.setCurrentIndex(6)
+    
+    def on_password_created(self, password_data):
+        """Handle new password created from form."""
+        self.password_service.add_password(password_data)
+        self.refresh_list()
+        self.update_badges()
+        self.show_list()
 
-if __name__ == "__main__":
+
+def run_app():
+    """Run the application with login/logout loop."""
     app = QApplication(sys.argv)
     
     # Ustawienie fontu na systemowy sans-serif
@@ -336,14 +354,39 @@ if __name__ == "__main__":
     # Aplikowanie stylów
     app.setStyleSheet(STYLESHEET)
     
-    # Login Dialog
-    login = LoginDialog()
-    login.show()
+    while True:
+        # Show Login Dialog
+        login = LoginDialog()
+        login.show()
+        app.exec_()
+        
+        if not login.authenticated:
+            # User closed login window without logging in
+            break
+        
+        # User authenticated - open main window
+        username = login.logged_in_username
+        window = MainWindow(username)
+        window.show()
+        
+        # Track logout state
+        logout_requested = [False]
+        
+        def on_logout():
+            logout_requested[0] = True
+            app.quit()
+        
+        window.logout_signal.connect(on_logout)
+        app.exec_()
+        
+        if not logout_requested[0]:
+            # User closed main window (not via logout) - exit app
+            break
+        
+        # Logout was requested - loop back to login
     
-    # Wait for login
-    app.exec_()
-    
-    if login.authenticated:
-       window = MainWindow()
-       window.show()
-       sys.exit(app.exec_())
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    run_app()

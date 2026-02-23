@@ -23,5 +23,9 @@ FILTER_SECURITY = 'security'
 
 # Messages
 MSG_COPIED = "Copied!"
-MSG_INCORRECT_PASSWORD = "Invalid password"
+MSG_INCORRECT_PASSWORD = "Invalid username or password"
 MSG_ENTER_USERNAME = "Please enter username"
+MSG_PASSWORDS_NOT_MATCH = "Passwords do not match"
+MSG_USERNAME_TAKEN = "This username is already taken"
+MSG_FILL_ALL_FIELDS = "Please fill in all fields"
+MSG_ACCOUNT_CREATED = "Account created successfully!"

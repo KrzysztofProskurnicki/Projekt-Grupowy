@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
 # Data file paths
-DATA_FILE = os.path.join(PROJECT_DIR, 'data', 'passwords.json')
+USERS_FILE = os.path.join(PROJECT_DIR, 'data', 'users.json')
 CONFIG_FILE = os.path.join(PROJECT_DIR, 'config', 'config.json')
 
 # Application settings

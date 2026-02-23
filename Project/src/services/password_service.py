@@ -1,29 +1,33 @@
-"""Password Service - logika biznesowa operacji na hasłach."""
+"""Password Service - logika biznesowa operacji na hasłach (per-user)."""
 
 from typing import List, Dict, Any
-from models.password import Password
 from services.data_manager import DataManager
 
 
 class PasswordService:
-    """Zarządza operacjami CRUD i filtrowaniem haseł."""
+    """Zarządza operacjami CRUD i filtrowaniem haseł dla konkretnego użytkownika."""
     
-    def __init__(self):
-        """Inicjalizuj serwis haseł."""
-        self.data_manager = DataManager()  # Manager plików JSON
-        self._passwords_data: List[Dict[str, Any]] = []  # Cache haseł
-        self.load_passwords()  # Załaduj przy starcie
+    def __init__(self, username: str):
+        """Inicjalizuj serwis haseł dla danego użytkownika.
+        
+        Args:
+            username: Nazwa zalogowanego użytkownika.
+        """
+        self.data_manager = DataManager()
+        self._username = username
+        self._passwords_data: List[Dict[str, Any]] = []
+        self.load_passwords()
     
     def load_passwords(self) -> None:
-        """Load passwords from file."""
-        self._passwords_data = self.data_manager.load_passwords()
+        """Załaduj hasła zalogowanego użytkownika."""
+        self._passwords_data = self.data_manager.load_user_passwords(self._username)
     
     def save_passwords(self) -> None:
-        """Save passwords to file."""
-        self.data_manager.save_passwords(self._passwords_data)
+        """Zapisz hasła zalogowanego użytkownika."""
+        self.data_manager.save_user_passwords(self._username, self._passwords_data)
     
     def get_all_passwords(self) -> List[Dict[str, Any]]:
-        """Get all passwords.
+        """Get all passwords for current user.
         
         Returns:
             List of all password dictionaries.
