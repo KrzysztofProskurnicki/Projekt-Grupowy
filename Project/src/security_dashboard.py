@@ -483,7 +483,7 @@ class SecurityView(QWidget):
 
     def create_stat_card(self, title, value, color, icon):
         card = QFrame()
-        card.setStyleSheet(f"QFrame {{ background-color: {CARD_BG}; border-radius: 12px; border-left: 4px solid " + color + "; }}")
+        card.setStyleSheet(f"QFrame {{ background-color: {CARD_BG}; border-radius: 12px; border-left: 4px solid {color}; }}")
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 16, 16, 16)
