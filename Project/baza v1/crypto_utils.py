@@ -31,7 +31,7 @@ class CryptoManager:
         """Generuje losową sól (16 bajtów)."""
         return os.urandom(16)
 
-    def encrypt(self, data: str) -> (bytes, bytes):
+    def encrypt(self, data: str) -> tuple[bytes, bytes]:
         """
         Szyfruje tekst algorytmem AES-GCM.
         Zwraca (szyfrogram, nonce).
