@@ -1,27 +1,39 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QFrame, QLineEdit, QSizePolicy, QSpacerItem, QTextEdit,
-                             QMessageBox, QInputDialog, QToolTip, QGraphicsOpacityEffect)
-from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
-from PyQt5.QtGui import QFont, QIcon, QClipboard, QGuiApplication, QColor
-import json
-import os
-from styles import TEXT_PRIMARY
+"""Detail View - Displays detailed information about a password entry."""
 
-# Config file path
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../config/config.json')
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+                             QPushButton, QFrame, QLineEdit, QSizePolicy, QTextEdit,
+                             QGraphicsOpacityEffect)
+from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimationGroup
+from PyQt5.QtGui import QFont, QGuiApplication
+from widgets.notification_popup import NotificationPopup
+from widgets.master_password_overlay import MasterPasswordOverlay
+from services.authentication_service import AuthenticationService
+from styles import TEXT_PRIMARY
+from constants import MSG_COPIED
+
+
 
 class DetailView(QWidget):
+    """Detail view for displaying and editing password information."""
+    
     def __init__(self, switch_back_callback, favorite_callback=None):
+        """Initialize detail view.
+        
+        Args:
+            switch_back_callback: Callback to return to previous view.
+            favorite_callback: Callback to toggle favorite status.
+        """
         super().__init__()
         self.switch_back_callback = switch_back_callback
-        self.favorite_callback = favorite_callback  # Callback to save favorite to file
-        self.current_name = ""  # Track current entry name
+        self.favorite_callback = favorite_callback
+        self.current_name = ""
         
         # State variables
-        self.is_favorite = True  # Default to favorited
+        self.is_favorite = True
         self.password_visible = False
-        self.is_authenticated = False # Session authentication state
-        self.actual_password = "SecureP@ssw0rd123"  # Simulated password
+        self.auth_service = AuthenticationService()
+        self.actual_password = "SecureP@ssw0rd123"
+
         
         # Główny layout
         self.main_layout = QVBoxLayout(self)
@@ -106,10 +118,8 @@ class DetailView(QWidget):
     def create_field(self, label_text, value_text, is_copyable=False, is_password=False, is_multiline=False):
         container = QFrame()
         container.setStyleSheet("""
-            QFrame {
-                background-color: #2c2c2e;
-                border-radius: 12px;
-            }
+            background-color: #2c2c2e;
+            border-radius: 12px;
         """)
         layout = QVBoxLayout(container)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -178,52 +188,68 @@ class DetailView(QWidget):
         layout.addLayout(row)
         self.main_layout.addWidget(container)
     
+
     def request_master_password(self, on_success):
-        """Show embedded master password overlay if not authenticated."""
-        if self.is_authenticated:
+        """Show embedded master password overlay if not authenticated.
+        
+        Args:
+            on_success: Callback function to execute on successful authentication.
+        """
+        if self.auth_service.is_authenticated():
             on_success()
             return
             
         def auth_success_wrapper():
-            self.is_authenticated = True
+            self.auth_service.set_authenticated(True)
             on_success()
             
-        overlay = MasterPasswordOverlay(self, auth_success_wrapper)
+        overlay = MasterPasswordOverlay(self, auth_success_wrapper, self.auth_service)
         overlay.show()
     
     def toggle_password_visibility_with_auth(self):
         """Toggle password visibility with master password verification."""
         if not self.password_visible:
-            # Need to verify before showing
             self.request_master_password(self._show_password)
         else:
-            # Just hide it
             self.password_visible = False
             self.password_lbl.setText("•••••••••••••")
             self.eye_btn.setText("👁")
+
     
     def _show_password(self):
         self.password_visible = True
         self.password_lbl.setText(self.actual_password)
         self.eye_btn.setText("👁‍🗨")
     
+
     def copy_password_with_auth(self):
         """Copy password to clipboard with master password verification."""
         self.request_master_password(self._copy_password_action)
     
     def _copy_password_action(self):
+        """Copy password action after authentication."""
         QGuiApplication.clipboard().setText(self.actual_password)
-        self.show_notification("Copied!")
+        self.show_notification(MSG_COPIED)
     
     def copy_with_notification(self, text, field_name):
-        """Copy text and show notification."""
+        """Copy text and show notification.
+        
+        Args:
+            text: Text to copy to clipboard.
+            field_name: Name of field being copied.
+        """
         QGuiApplication.clipboard().setText(text)
-        self.show_notification("Copied!")
+        self.show_notification(MSG_COPIED)
     
     def show_notification(self, message):
-        """Show a temporary notification message using a custom popup."""
+        """Show a temporary notification message using a custom popup.
+        
+        Args:
+            message: Message to display.
+        """
         popup = NotificationPopup(message, self)
         popup.show()
+
 
     def toggle_favorite(self):
         """Toggle the favorite state and update star appearance."""
@@ -273,10 +299,20 @@ class DetailView(QWidget):
             self.password_lbl.setText("•••••••••••••")
             self.eye_btn.setText("👁")
 
+
     def update_data(self, title, subtitle, color, letter, favorite=False):
-        self.current_name = title  # Store for callback
+        """Update detail view with new password data.
+        
+        Args:
+            title: Password name/title.
+            subtitle: Password email/subtitle.
+            color: Icon background color.
+            letter: Icon letter.
+            favorite: Whether password is marked as favorite.
+        """
+        self.current_name = title
         self.is_favorite = favorite
-        self.is_authenticated = False # Reset auth when switching to new entry
+        self.auth_service.set_authenticated(False)  # Reset auth when switching to new entry
         self.update_star_style()
         
         self.title_label.setText(title)
@@ -289,258 +325,15 @@ class DetailView(QWidget):
             font-weight: bold;
         """)
         
-        # Symulacja danych szczegółowych
+        # Simulated data
         self.username_lbl.setText(subtitle)
         self.link_label.setText(f"https://{title.lower()}.com")
         self.website_lbl.setText(f"https://{title.lower()}.com")
         
-        # Reset password visibility when switching entries
+        # Reset password visibility
         self.password_visible = False
         self.password_lbl.setText("•••••••••••••")
         self.eye_btn.setText("👁")
 
-class NotificationPopup(QWidget):
-    """Custom toast notification with animation (Embedded Overlay)."""
-    def __init__(self, message, parent=None):
-        super().__init__(parent)
-        # No Window flags -> Child widget
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_ShowWithoutActivating)
-        
-        # Layout
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Frame
-        self.frame = QFrame()
-        self.frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: #1c351e; 
-                color: #ffffff;
-                border: 1px solid black;
-                border-radius: 6px;
-                padding: 0px;
-            }}
-        """)
-        
-        frame_layout = QHBoxLayout(self.frame)
-        frame_layout.setContentsMargins(0, 0, 0, 0)
-        frame_layout.setSpacing(0)
-        
-        # Text
-        text_lbl = QLabel(message)
-        text_lbl.setAlignment(Qt.AlignCenter)
-        text_lbl.setStyleSheet("font-size: 13px; font-weight: 500; border: none; background: transparent; padding: 4px 12px;") # Min padding for readability inside box
-        frame_layout.addWidget(text_lbl)
-        
-        layout.addWidget(self.frame)
-        
-        # Position at top center of parent (Local Coordinates)
-        if parent:
-            # We are a child, so 0,0 is parent's top-left
-            p_width = parent.width()
-            my_width = self.sizeHint().width()
-            x = (p_width - my_width) // 2
-            y = 20 # 20px from top
-            self.move(x, y)
-            self.raise_() # Ensure top of siblings
-        
-        # Animation
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.close_animation)
-        self.timer.start(2000) # Show for 2 seconds
-        
-        # Entry animation (Slide down small bit + Fade in)
-        self.opacity_effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.opacity_effect)
-        
-        self.group_enter = QParallelAnimationGroup(self)
-        
-        # Opacity
-        anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity")
-        anim_fade.setDuration(200)
-        anim_fade.setStartValue(0)
-        anim_fade.setEndValue(1)
-        
-        # Slide Down
-        anim_pos = QPropertyAnimation(self, b"pos")
-        anim_pos.setDuration(200)
-        start_pos = self.pos()
-        anim_pos.setStartValue(QPoint(start_pos.x(), start_pos.y() - 10))
-        anim_pos.setEndValue(start_pos)
-        
-        self.group_enter.addAnimation(anim_fade)
-        self.group_enter.addAnimation(anim_pos)
-        self.group_enter.start()
 
-    def close_animation(self):
-        """Fade out and slide up."""
-        self.group = QParallelAnimationGroup(self)
-        
-        # Opacity
-        anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity")
-        anim_fade.setDuration(300)
-        anim_fade.setStartValue(1)
-        anim_fade.setEndValue(0)
-        
-        # Position (Slide Up)
-        anim_pos = QPropertyAnimation(self, b"pos")
-        anim_pos.setDuration(300)
-        start_pos = self.pos()
-        anim_pos.setStartValue(start_pos)
-        anim_pos.setEndValue(QPoint(start_pos.x(), start_pos.y() - 20))
-        
-        self.group.addAnimation(anim_fade)
-        self.group.addAnimation(anim_pos)
-        
-        self.group.finished.connect(self.close)
-        self.group.start()
 
-class MasterPasswordOverlay(QWidget):
-    """Embedded overlay for Master Password verification."""
-    def __init__(self, parent, on_success_callback):
-        super().__init__(parent)
-        self.on_success = on_success_callback
-        self.resize(parent.size())  # Cover entire parent
-        
-        # No window layout, just simple overlay behavior
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 180);") # Dimmed darker background
-        
-        # Main layout for centering
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignCenter)
-        
-        # Container
-        container = QFrame()
-        container.setFixedSize(320, 180)
-        container.setStyleSheet(f"""
-            QFrame {{
-                background-color: #1c1c1e;
-                border: 1px solid #3a3a3c;
-                border-radius: 12px;
-            }}
-            QLabel {{
-                color: {TEXT_PRIMARY};
-                font-size: 16px;
-                background: transparent;
-                border: none;
-            }}
-            QLineEdit {{
-                background-color: #2c2c2e;
-                color: white;
-                border: 1px solid #48484a;
-                border-radius: 6px;
-                padding: 8px;
-                font-size: 14px;
-            }}
-            QLineEdit:focus {{
-                border: 1px solid #0a84ff;
-            }}
-            QPushButton {{
-                background-color: #3a3a3c;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px;
-                font-size: 14px;
-            }}
-            QPushButton:hover {{
-                background-color: #48484a;
-            }}
-            QPushButton#primary {{
-                background-color: #0a84ff;
-            }}
-            QPushButton#primary:hover {{
-                background-color: #0077ed;
-            }}
-        """)
-        
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(24, 24, 24, 24)
-        container_layout.setSpacing(16)
-        
-        # Title
-        title_lbl = QLabel("Enter Master Password")
-        title_lbl.setAlignment(Qt.AlignCenter)
-        container_layout.addWidget(title_lbl)
-        
-        # Input
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("Password")
-        self.password_input.returnPressed.connect(self.verify_password)
-        container_layout.addWidget(self.password_input)
-        
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(12)
-        
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setCursor(Qt.PointingHandCursor)
-        cancel_btn.clicked.connect(self.close)
-        
-        ok_btn = QPushButton("OK")
-        ok_btn.setObjectName("primary")
-        ok_btn.setCursor(Qt.PointingHandCursor)
-        ok_btn.clicked.connect(self.verify_password)
-        
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addWidget(ok_btn)
-        
-        container_layout.addLayout(btn_layout)
-        layout.addWidget(container)
-        
-        self.password_input.setFocus()
-    
-    def verify_password(self):
-        entered_pwd = self.password_input.text()
-        
-        # Load config to check password
-        try:
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                master_pwd = config.get('master_password', '')
-        except (FileNotFoundError, json.JSONDecodeError):
-            master_pwd = ""
-            
-        if entered_pwd == master_pwd:
-            self.on_success()
-            self.close()
-        else:
-            # Shake animation or visual feedback for error
-            anim = QPropertyAnimation(self.password_input, b"pos")
-            anim.setDuration(100)
-            anim.setLoopCount(3)
-            start_pos = self.password_input.pos()
-            # Simple shake logic not easily doable with layout managed widget without custom property
-            # Instead, let's flash red border
-            self.password_input.setStyleSheet("""
-                QLineEdit {
-                    background-color: #2c2c2e;
-                    color: white;
-                    border: 1px solid #ff453a;
-                    border-radius: 6px;
-                    padding: 8px;
-                    font-size: 14px;
-                }
-            """)
-            QTimer.singleShot(1000, lambda: self.password_input.setStyleSheet("""
-                QLineEdit {
-                    background-color: #2c2c2e;
-                    color: white;
-                    border: 1px solid #48484a;
-                    border-radius: 6px;
-                    padding: 8px;
-                    font-size: 14px;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #0a84ff;
-                }
-            """))
-
-    def showEvent(self, event):
-        # Resize to cover parent whenever shown
-        if self.parent():
-            self.resize(self.parent().size())
-        super().showEvent(event)

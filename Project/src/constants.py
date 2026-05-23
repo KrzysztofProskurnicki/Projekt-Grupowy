@@ -1,0 +1,31 @@
+"""Application constants."""
+
+# Stack widget indices
+VIEW_INDEX_PASSWORD_LIST = 0
+VIEW_INDEX_DETAIL = 1
+VIEW_INDEX_SECURITY = 2
+VIEW_INDEX_VAULT = 3
+VIEW_INDEX_SETTINGS = 4
+VIEW_INDEX_PROFILE = 5
+
+# Sidebar navigation indices
+NAV_INDEX_ALL_PASSWORDS = 0
+NAV_INDEX_FAVORITES = 1
+NAV_INDEX_SECURITY = 2
+NAV_INDEX_VAULT = 3
+NAV_INDEX_SETTINGS = 4
+NAV_INDEX_PROFILE = 5
+
+# Filter types
+FILTER_ALL = 'all'
+FILTER_FAVORITES = 'favorites'
+FILTER_SECURITY = 'security'
+
+# Messages
+MSG_COPIED = "Copied!"
+MSG_INCORRECT_PASSWORD = "Invalid username or password"
+MSG_ENTER_USERNAME = "Please enter username"
+MSG_PASSWORDS_NOT_MATCH = "Passwords do not match"
+MSG_USERNAME_TAKEN = "This username is already taken"
+MSG_FILL_ALL_FIELDS = "Please fill in all fields"
+MSG_ACCOUNT_CREATED = "Account created successfully!"

@@ -1,55 +1,74 @@
-import sys
-import json
-import os
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QLabel, QLineEdit, QListWidget, 
-                             QListWidgetItem, QFrame, QPushButton, QScrollArea,
-                             QSpacerItem, QSizePolicy, QStackedWidget,
-                             QInputDialog, QMessageBox, QTableWidget, 
-                             QTableWidgetItem, QHeaderView, QProgressBar)
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont, QColor, QIcon
+"""Main application window - Password Manager."""
 
-# Import refactored modules
+import sys
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
+                             QListWidgetItem, QPushButton, QStackedWidget,
+                             QFrame)
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont
+
+
+# Application modules
 from styles import *
+from config import *
+from constants import *
 from login_dialog import LoginDialog
 from sidebar import Sidebar
 from security_dashboard import SecurityView
 from detail_view import DetailView
+from services.password_service import PasswordService
+from widgets.password_item_widget import PasswordItemWidget
+from add_password_view import AddPasswordView
 
-# Data file paths
-DATA_FILE = os.path.join(os.path.dirname(__file__), '../data/passwords.json')
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '../config/config.json')
+
 
 class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Password Manager UI")
-        self.resize(1100, 700)
-        self.setMinimumSize(1100, 700)
+    """Główne okno aplikacji."""
+    
+    logout_signal = pyqtSignal()
+    
+    def __init__(self, username: str):
+        """Inicjalizuj główne okno dla zalogowanego użytkownika.
         
-        # Główny widget kontenera
+        Args:
+            username: Nazwa zalogowanego użytkownika.
+        """
+        super().__init__()
+        self._username = username
+        
+        # Ustawienia okna
+        self.setWindowTitle(WINDOW_TITLE)
+        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
+        
+        # Inicjalizuj serwisy (scoped to user)
+        self.password_service = PasswordService(username)
+        self.current_filter = FILTER_ALL
+        
+        # Główny kontener
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         
-        # Główny układ poziomy (Sidebar | Content)
+        # Layout główny (Sidebar | Treść)
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # --- SIDEBAR (Lewa strona) ---
-        self.sidebar = Sidebar()
+        # --- SIDEBAR (Left side) ---
+        self.sidebar = Sidebar(username=username)
         self.sidebar.nav_clicked.connect(self.handle_nav_click)
+        self.sidebar.logout_clicked.connect(self._on_logout)
         
-        # --- CONTENT (Prawa strona) ---
+        # --- CONTENT (Right side) ---
         content_area = QWidget()
         content_layout = QVBoxLayout(content_area)
         content_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Stacked Widget do przełączania widoków
+        # Stacked Widget for view switching
         self.stacked_widget = QStackedWidget()
         
-        # Widok listy haseł (główny widok)
+        # Password list view (main view)
         self.page_list = QWidget()
         list_layout = QVBoxLayout(self.page_list)
         list_layout.setContentsMargins(0, 0, 0, 0)
@@ -71,7 +90,7 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
         
         # Add Button
-        add_btn = QPushButton(" + New Item ")
+        add_btn = QPushButton(" + Add ")
         add_btn.setStyleSheet(
             "QPushButton {"
             "    background-color: #0a84ff;"
@@ -79,11 +98,11 @@ class MainWindow(QMainWindow):
             "    border: none;"
             "    border-radius: 6px;"
             "    padding: 8px 16px;"
-            "    font-weight: 600;"
+            "    font-weight: 500;"
             "}"
             "QPushButton:hover { background-color: #0077ea; }"
         )
-        add_btn.clicked.connect(self.add_new_item)
+        add_btn.clicked.connect(self.show_add_form)
         header_layout.addWidget(add_btn)
         
         list_layout.addWidget(header_widget)
@@ -95,80 +114,81 @@ class MainWindow(QMainWindow):
         self.list_widget.itemClicked.connect(self.open_detail_view)
         list_layout.addWidget(self.list_widget)
         
-        self.stacked_widget.addWidget(self.page_list) # Index 0
+        self.stacked_widget.addWidget(self.page_list)  # Index 0
         
-        # Detail Page - pass favorite callback for persistence
+        # Detail Page
         self.page_detail = DetailView(self.show_list, self.toggle_favorite)
-        self.stacked_widget.addWidget(self.page_detail) # Index 1
+        self.stacked_widget.addWidget(self.page_detail)  # Index 1
         
         # Security Dashboard Page
         self.page_security = SecurityView(self.show_list, self.navigate_to_detail)
-        self.stacked_widget.addWidget(self.page_security) # Index 2
+        self.stacked_widget.addWidget(self.page_security)  # Index 2
         
         # Placeholders for new pages
         self.page_vault = QLabel("Vault View (Coming Soon)")
         self.page_vault.setAlignment(Qt.AlignCenter)
         self.page_vault.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
-        self.stacked_widget.addWidget(self.page_vault) # Index 3
+        self.stacked_widget.addWidget(self.page_vault)  # Index 3
         
         self.page_settings = QLabel("Settings View (Coming Soon)")
         self.page_settings.setAlignment(Qt.AlignCenter)
         self.page_settings.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
-        self.stacked_widget.addWidget(self.page_settings) # Index 4
+        self.stacked_widget.addWidget(self.page_settings)  # Index 4
         
         self.page_profile = QLabel("Profile View (Coming Soon)")
         self.page_profile.setAlignment(Qt.AlignCenter)
         self.page_profile.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
-        self.stacked_widget.addWidget(self.page_profile) # Index 5
+        self.stacked_widget.addWidget(self.page_profile)  # Index 5
+        
+        # Add Password Form Page
+        self.page_add_password = AddPasswordView()
+        self.page_add_password.password_created.connect(self.on_password_created)
+        self.page_add_password.back_clicked.connect(self.show_list)
+        self.stacked_widget.addWidget(self.page_add_password)  # Index 6
         
         content_layout.addWidget(self.stacked_widget)
-        
-        # Load data from JSON file
-        self.passwords_data = self.load_data()
-        self.current_filter = 'all'
         
         # Initial load
         self.refresh_list()
         self.update_badges()
             
-        # Składanie całości
+        # Assembly
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(content_area)
+
+    
+    def _on_logout(self):
+        """Handle logout - emit signal and close window."""
+        self.logout_signal.emit()
+        self.close()
     
     def load_data(self):
-        """Load password data from JSON file."""
-        try:
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            return []
+        """Load password data - delegated to service (deprecated)."""
+        return self.password_service.get_all_passwords()
     
     def save_data(self):
-        """Save password data to JSON file."""
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.passwords_data, f, indent=4, ensure_ascii=False)
+        """Save password data - delegated to service (deprecated)."""
+        self.password_service.save_passwords()
             
     def update_badges(self):
-        """Update sidebar badges."""
-        total = len(self.passwords_data)
-        favorites = sum(1 for p in self.passwords_data if p.get('favorite', False))
-        security_issues = sum(1 for p in self.passwords_data if p.get('weak_password', False))
-        
-        self.sidebar.update_badge(0, total)
-        self.sidebar.update_badge(1, favorites)
-        self.sidebar.update_badge(2, security_issues)
+        """Update sidebar badges with counts from service."""
+        self.sidebar.update_badge(NAV_INDEX_ALL_PASSWORDS, self.password_service.get_password_count())
+        self.sidebar.update_badge(NAV_INDEX_FAVORITES, self.password_service.get_favorites_count())
+        self.sidebar.update_badge(NAV_INDEX_SECURITY, self.password_service.get_weak_count())
     
     def refresh_list(self):
         """Refresh the password list based on current filter."""
         self.list_widget.clear()
         
-        for entry in self.passwords_data:
-            # Apply filter
-            if self.current_filter == 'favorites' and not entry.get('favorite', False):
-                continue
-            if self.current_filter == 'security' and not entry.get('weak_password', False):
-                continue
-            
+        # Get passwords based on filter using service
+        if self.current_filter == FILTER_FAVORITES:
+            passwords = self.password_service.get_favorites()
+        elif self.current_filter == FILTER_SECURITY:
+            passwords = self.password_service.get_weak_passwords()
+        else:
+            passwords = self.password_service.get_all_passwords()
+        
+        for entry in passwords:
             self.add_list_item(
                 entry['name'],
                 entry['email'],
@@ -239,10 +259,10 @@ class MainWindow(QMainWindow):
         vbox.setAlignment(Qt.AlignVCenter)
         
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet(f"font-size: 18px; font-weight: 600; color: {TEXT_PRIMARY}; border: none; background: transparent;")
+        title_lbl.setStyleSheet(f"font-size: 24px; font-weight: 600; color: {TEXT_PRIMARY}; border: none; background: transparent;")
         
         subtitle_lbl = QLabel(subtitle)
-        subtitle_lbl.setStyleSheet(f"font-size: 14px; color: {TEXT_SECONDARY}; border: none; background: transparent;")
+        subtitle_lbl.setStyleSheet(f"font-size: 16px; color: {TEXT_SECONDARY}; border: none; background: transparent;")
         
         vbox.addWidget(title_lbl)
         vbox.addWidget(subtitle_lbl)
@@ -287,53 +307,44 @@ class MainWindow(QMainWindow):
     
     def handle_nav_click(self, index):
         """Handle navigation button click from sidebar."""
-        # Index based switch
-        if index == 0:
-            self.current_filter = 'all'
+        if index == NAV_INDEX_ALL_PASSWORDS:
+            self.current_filter = FILTER_ALL
             self.refresh_list()
-            self.stacked_widget.setCurrentIndex(0)
-        elif index == 1:
-            self.current_filter = 'favorites'
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_PASSWORD_LIST)
+        elif index == NAV_INDEX_FAVORITES:
+            self.current_filter = FILTER_FAVORITES
             self.refresh_list()
-            self.stacked_widget.setCurrentIndex(0)
-        elif index == 2:
-            # Security Dashboard
-            self.current_filter = 'security' # also filter list behind scenes maybe?
-            self.page_security.update_stats(self.passwords_data)
-            self.stacked_widget.setCurrentIndex(2)
-        elif index == 3: # Vault
-            self.stacked_widget.setCurrentIndex(3)
-        elif index == 4: # Settings
-            self.stacked_widget.setCurrentIndex(4)
-        elif index == 5: # Profile
-            self.stacked_widget.setCurrentIndex(5)
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_PASSWORD_LIST)
+        elif index == NAV_INDEX_SECURITY:
+            self.current_filter = FILTER_SECURITY
+            self.page_security.update_stats(self.password_service.get_all_passwords())
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_SECURITY)
+        elif index == NAV_INDEX_VAULT:
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_VAULT)
+        elif index == NAV_INDEX_SETTINGS:
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_SETTINGS)
+        elif index == NAV_INDEX_PROFILE:
+            self.stacked_widget.setCurrentIndex(VIEW_INDEX_PROFILE)
     
     def toggle_favorite(self, name, is_favorite):
-        """Toggle favorite status for a password and save to file."""
-        for entry in self.passwords_data:
-            if entry['name'] == name:
-                entry['favorite'] = is_favorite
-                break
-        self.save_data()
+        """Toggle favorite status for a password using service."""
+        self.password_service.toggle_favorite(name, is_favorite)
         self.update_badges()
         
-    def add_new_item(self):
-        """Add new password item (Demo)."""
-        name, ok = QInputDialog.getText(self, "New Password", "Account Name:")
-        if ok and name:
-            new_entry = {
-                "name": name,
-                "email": "username@example.com",
-                "color": "#ff9f0a",
-                "weak_password": True, 
-                "favorite": False
-            }
-            self.passwords_data.append(new_entry)
-            self.save_data()
-            self.refresh_list()
-            self.update_badges()
+    def show_add_form(self):
+        """Show the add password form."""
+        self.stacked_widget.setCurrentIndex(6)
+    
+    def on_password_created(self, password_data):
+        """Handle new password created from form."""
+        self.password_service.add_password(password_data)
+        self.refresh_list()
+        self.update_badges()
+        self.show_list()
 
-if __name__ == "__main__":
+
+def run_app():
+    """Run the application with login/logout loop."""
     app = QApplication(sys.argv)
     
     # Ustawienie fontu na systemowy sans-serif
@@ -343,14 +354,39 @@ if __name__ == "__main__":
     # Aplikowanie stylów
     app.setStyleSheet(STYLESHEET)
     
-    # Login Dialog
-    login = LoginDialog()
-    login.show()
-    
-    # Wait for login
-    app.exec_()
-    
-    if login.authenticated:
-        window = MainWindow()
+    while True:
+        # Show Login Dialog
+        login = LoginDialog()
+        login.show()
+        app.exec_()
+        
+        if not login.authenticated:
+            # User closed login window without logging in
+            break
+        
+        # User authenticated - open main window
+        username = login.logged_in_username
+        window = MainWindow(username)
         window.show()
-        sys.exit(app.exec_())
+        
+        # Track logout state
+        logout_requested = [False]
+        
+        def on_logout():
+            logout_requested[0] = True
+            app.quit()
+        
+        window.logout_signal.connect(on_logout)
+        app.exec_()
+        
+        if not logout_requested[0]:
+            # User closed main window (not via logout) - exit app
+            break
+        
+        # Logout was requested - loop back to login
+    
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    run_app()
