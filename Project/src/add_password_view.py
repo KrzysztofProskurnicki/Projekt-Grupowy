@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QTextEdit, QPushButton, QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal
 from styles import *
+from services.password_generator import generate_strong_password
 
 
 class AddPasswordView(QWidget):
@@ -110,12 +111,41 @@ class AddPasswordView(QWidget):
         password_label = QLabel("Password")
         password_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(password_label)
-        
+
+        # Password input + Generate button in one row.
+        password_row = QHBoxLayout()
+        password_row.setSpacing(8)
+
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Enter password")
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setStyleSheet(self._input_style())
-        card_layout.addWidget(self.password_input)
+        password_row.addWidget(self.password_input)
+
+        generate_btn = QPushButton("Generate")
+        generate_btn.setCursor(Qt.PointingHandCursor)
+        generate_btn.setToolTip("Generate a strong random password")
+        generate_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #3a3a3c;
+                color: {COLOR_BLUE};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: #48484a;
+            }}
+            QPushButton:pressed {{
+                background-color: {CARD_BG};
+            }}
+        """)
+        generate_btn.clicked.connect(self._on_generate)
+        password_row.addWidget(generate_btn)
+
+        card_layout.addLayout(password_row)
         
         # --- Notes field ---
         notes_label = QLabel("Notes")
@@ -227,6 +257,15 @@ class AddPasswordView(QWidget):
             }}
         """
     
+    def _on_generate(self):
+        """Fill the password field with a freshly generated strong password.
+
+        Reveals the password (Normal echo) so the user can read what was
+        generated before saving it.
+        """
+        self.password_input.setText(generate_strong_password(length=20))
+        self.password_input.setEchoMode(QLineEdit.Normal)
+
     def _on_back(self):
         """Handle back button click."""
         self._clear_form()
@@ -280,5 +319,6 @@ class AddPasswordView(QWidget):
         self.website_input.clear()
         self.username_input.clear()
         self.password_input.clear()
+        self.password_input.setEchoMode(QLineEdit.Password)
         self.notes_input.clear()
         self.status_label.clear()

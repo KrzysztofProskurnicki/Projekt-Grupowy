@@ -10,6 +10,10 @@ PROJECT_DIR = os.path.dirname(BASE_DIR)
 USERS_FILE = os.path.join(PROJECT_DIR, 'data', 'users.json')
 CONFIG_FILE = os.path.join(PROJECT_DIR, 'config', 'config.json')
 
+# Encrypted vault database (SQLite). Lives next to legacy users.json so the
+# data/ directory stays the single home for persistent user data.
+DB_FILE = os.path.join(PROJECT_DIR, 'data', 'vault.db')
+
 # Application settings
 WINDOW_TITLE = "Password Manager UI"
 WINDOW_WIDTH = 1500

@@ -18,6 +18,8 @@ from sidebar import Sidebar
 from security_dashboard import SecurityView
 from detail_view import DetailView
 from services.password_service import PasswordService
+from services.authentication_service import AuthenticationService
+from services.migration import migrate_if_needed
 from widgets.password_item_widget import PasswordItemWidget
 from add_password_view import AddPasswordView
 
@@ -158,7 +160,8 @@ class MainWindow(QMainWindow):
 
     
     def _on_logout(self):
-        """Handle logout - emit signal and close window."""
+        """Handle logout - clear vault key, emit signal, close window."""
+        AuthenticationService().logout()
         self.logout_signal.emit()
         self.close()
     
@@ -189,27 +192,25 @@ class MainWindow(QMainWindow):
             passwords = self.password_service.get_all_passwords()
         
         for entry in passwords:
-            self.add_list_item(
-                entry['name'],
-                entry['email'],
-                entry['color'],
-                entry['name'][0],
-                entry.get('favorite', False)
-            )
-            
+            self.add_list_item(entry)
+
     def filter_list(self, text):
         """Filter list by search text."""
         text = text.lower()
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
-            # Retrieve data from item
-            data = item.data(Qt.UserRole)
-            if data:
-                title = data[0].lower()
-                subtitle = data[1].lower()
+            entry = item.data(Qt.UserRole)
+            if entry:
+                title = entry.get("name", "").lower()
+                subtitle = entry.get("email", "").lower()
                 item.setHidden(text not in title and text not in subtitle)
 
-    def add_list_item(self, title, subtitle, color, letter, favorite=False):
+    def add_list_item(self, entry):
+        title = entry.get("name", "")
+        subtitle = entry.get("email", "")
+        color = entry.get("color", "#333333")
+        letter = (title[0].upper() if title else "?")
+        favorite = bool(entry.get("favorite", False))
         item = QListWidgetItem()
         
         # 1. Container Widget (Transparent, holds margins)
@@ -288,19 +289,19 @@ class MainWindow(QMainWindow):
         self.list_widget.addItem(item)
         self.list_widget.setItemWidget(item, container_widget)
         
-        # Store data for detail view
-        item.setData(Qt.UserRole, (title, subtitle, color, letter, favorite))
-            
+        # Store the full decrypted entry on the item so the detail view
+        # can show actual password / notes / etc. without re-querying.
+        item.setData(Qt.UserRole, entry)
+
     def open_detail_view(self, item):
-        data = item.data(Qt.UserRole)
-        if data:
-            title, subtitle, color, letter, favorite = data
-            self.navigate_to_detail(title, subtitle, color, letter, favorite)
-            
-    def navigate_to_detail(self, title, subtitle, color, letter, favorite):
-        """Navigate to detail view with provided data."""
-        self.page_detail.update_data(title, subtitle, color, letter, favorite)
-        self.stacked_widget.setCurrentIndex(1)
+        entry = item.data(Qt.UserRole)
+        if entry:
+            self.navigate_to_detail(entry)
+
+    def navigate_to_detail(self, entry):
+        """Navigate to detail view with the given decrypted entry dict."""
+        self.page_detail.update_data(entry)
+        self.stacked_widget.setCurrentIndex(VIEW_INDEX_DETAIL)
             
     def show_list(self):
         self.stacked_widget.setCurrentIndex(0)
@@ -345,12 +346,16 @@ class MainWindow(QMainWindow):
 
 def run_app():
     """Run the application with login/logout loop."""
+    # One-shot migration from the legacy plaintext users.json into the
+    # encrypted SQLite vault. Safe to call on every launch (idempotent).
+    migrate_if_needed()
+
     app = QApplication(sys.argv)
-    
+
     # Ustawienie fontu na systemowy sans-serif
     font = QFont("Segoe UI", 14) if sys.platform == "win32" else QFont("Helvetica Neue", 14)
     app.setFont(font)
-    
+
     # Aplikowanie stylów
     app.setStyleSheet(STYLESHEET)
     

@@ -278,5 +278,4 @@ class SecurityView(QWidget):
 
     def on_table_double_clicked(self, row, column):
         if 0 <= row < len(self.passwords_data):
-            e = self.passwords_data[row]
-            self.detail_callback(e['name'], e['email'], e['color'], e['name'][0], e.get('favorite', False))
+            self.detail_callback(self.passwords_data[row])

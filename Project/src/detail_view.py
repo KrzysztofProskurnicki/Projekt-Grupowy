@@ -32,7 +32,8 @@ class DetailView(QWidget):
         self.is_favorite = True
         self.password_visible = False
         self.auth_service = AuthenticationService()
-        self.actual_password = "SecureP@ssw0rd123"
+        # Populated from the entry dict by update_data().
+        self.actual_password = ""
 
         
         # Główny layout
@@ -300,22 +301,30 @@ class DetailView(QWidget):
             self.eye_btn.setText("👁")
 
 
-    def update_data(self, title, subtitle, color, letter, favorite=False):
-        """Update detail view with new password data.
-        
+    def update_data(self, entry: dict):
+        """Update detail view with data from a decrypted password entry.
+
         Args:
-            title: Password name/title.
-            subtitle: Password email/subtitle.
-            color: Icon background color.
-            letter: Icon letter.
-            favorite: Whether password is marked as favorite.
+            entry: Dict with keys name, email, password, notes, color,
+                favorite (the shape returned by PasswordService).
         """
-        self.current_name = title
+        name = entry.get("name", "")
+        email = entry.get("email", "")
+        color = entry.get("color", "#333333")
+        favorite = bool(entry.get("favorite", False))
+        notes = entry.get("notes", "")
+        password = entry.get("password", "")
+        letter = name[0].upper() if name else "?"
+
+        self.current_name = name
         self.is_favorite = favorite
-        self.auth_service.set_authenticated(False)  # Reset auth when switching to new entry
+        self.actual_password = password
+        # Reset re-auth gate every time a different entry is opened so the
+        # master-password overlay re-prompts before revealing/copying.
+        self.auth_service.set_authenticated(False)
         self.update_star_style()
-        
-        self.title_label.setText(title)
+
+        self.title_label.setText(name)
         self.icon_label.setText(letter)
         self.icon_label.setStyleSheet(f"""
             background-color: {color};
@@ -324,15 +333,17 @@ class DetailView(QWidget):
             font-size: 40px;
             font-weight: bold;
         """)
-        
-        # Simulated data
-        self.username_lbl.setText(subtitle)
-        self.link_label.setText(f"https://{title.lower()}.com")
-        self.website_lbl.setText(f"https://{title.lower()}.com")
-        
-        # Reset password visibility
+
+        # `name` doubles as the website/identifier in our data model
+        # (AddPasswordView's "Website" field is stored as `name`).
+        self.link_label.setText(name)
+        self.username_lbl.setText(email)
+        self.website_lbl.setText(name)
+        self.notes_edit.setPlainText(notes)
+
+        # Mask the password until the user re-authenticates.
         self.password_visible = False
-        self.password_lbl.setText("•••••••••••••")
+        self.password_lbl.setText("•••••••••••••" if password else "")
         self.eye_btn.setText("👁")
 
 

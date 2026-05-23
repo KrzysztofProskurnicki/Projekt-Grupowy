@@ -1,91 +1,128 @@
-"""Authentication Service - User authentication logic."""
+"""Authentication Service - user login/registration backed by SQLite + Argon2id.
 
-from services.data_manager import DataManager
+Public API is unchanged from the previous JSON-backed version so the UI layer
+(LoginDialog, RegisterDialog, DetailView, MasterPasswordOverlay) does not need
+to be touched. Internally:
+
+* user credentials -> Argon2id salt + SHA256(key) verifier in the ``users``
+  table (no plaintext password is ever stored);
+* on successful login the derived key is loaded into the shared
+  :data:`crypto_service.crypto_manager` and stays there until logout;
+* ``verify_master_password`` re-derives the current user's key and compares it
+  to the stored verifier (so the master-password overlay in the detail view
+  actually re-validates the logged-in user, not a hardcoded admin password).
+"""
+
+import hashlib
+from typing import Optional
+
+from services.crypto_service import crypto_manager
+from services import vault_repository
+
+
+class _AuthState:
+    """Module-level session state shared by every AuthenticationService instance."""
+    current_user_id: Optional[int] = None
+    current_username: Optional[str] = None
+
+
+_state = _AuthState()
+
+
+# Ensure tables exist as soon as the service module is imported. This is
+# idempotent (CREATE TABLE IF NOT EXISTS) so it costs effectively nothing.
+vault_repository.init_db()
+
+
+def _verifier_for(key: bytes) -> bytes:
+    return hashlib.sha256(key).digest()
 
 
 class AuthenticationService:
-    """Manages user authentication and session state."""
-    
-    def __init__(self):
-        """Initialize authentication service."""
-        self.data_manager = DataManager()
-        self._is_authenticated = False
-        self._current_user = None
-    
-    def verify_master_password(self, password: str) -> bool:
-        """Verify if provided password matches master password (legacy).
-        
-        Args:
-            password: Password to verify.
-            
-        Returns:
-            True if password is correct, False otherwise.
-        """
-        master_password = self.data_manager.get_master_password()
-        return password == master_password
-    
-    def get_master_password(self) -> str:
-        """Get master password from config.
-        
-        Returns:
-            Master password string.
-        """
-        return self.data_manager.get_master_password()
-    
-    def is_authenticated(self) -> bool:
-        """Check if user is authenticated in current session.
-        
-        Returns:
-            True if authenticated, False otherwise.
-        """
-        return self._is_authenticated
-    
-    def get_current_user(self) -> str:
-        """Get currently authenticated username.
-        
-        Returns:
-            Username string or None.
-        """
-        return self._current_user
-    
-    def set_authenticated(self, status: bool) -> None:
-        """Set authentication status.
-        
-        Args:
-            status: New authentication status.
-        """
-        self._is_authenticated = status
-    
+    """Manages user authentication and per-view re-auth state."""
+
+    def __init__(self) -> None:
+        # Per-instance flag preserved for DetailView's "did we already
+        # re-prompt for the master password while viewing this entry" UX.
+        # Module-level vault unlock state is tracked separately via crypto_manager.
+        self._view_unlocked: bool = False
+
+    # --- authentication ---
+
     def authenticate(self, username: str, password: str) -> bool:
-        """Authenticate user with username and password against user profiles.
-        
-        Args:
-            username: Username to authenticate.
-            password: Password to authenticate with.
-            
-        Returns:
-            True if authentication successful, False otherwise.
-        """
-        user = self.data_manager.find_user(username)
-        if user and user.get('password') == password:
-            self._is_authenticated = True
-            self._current_user = username
+        """Verify credentials and unlock the vault on success."""
+        with vault_repository.session_scope() as session:
+            user = vault_repository.find_user(session, username)
+            if user is None:
+                return False
+
+            try:
+                derived = crypto_manager.derive_key(password, user.salt)
+            except Exception:
+                return False
+
+            if _verifier_for(derived) != user.verifier:
+                return False
+
+            crypto_manager.unlock(derived)
+            _state.current_user_id = user.id
+            _state.current_username = user.username
             return True
-        return False
-    
+
     def register(self, username: str, password: str) -> bool:
-        """Register a new user profile.
-        
-        Args:
-            username: New username.
-            password: New password.
-            
-        Returns:
-            True if registration successful, False if username already taken.
+        """Create a new user. Returns False if the username is taken."""
+        with vault_repository.session_scope() as session:
+            if vault_repository.find_user(session, username) is not None:
+                return False
+
+            salt = crypto_manager.generate_salt()
+            derived = crypto_manager.derive_key(password, salt)
+            verifier = _verifier_for(derived)
+            vault_repository.create_user(
+                session, username=username, salt=salt, verifier=verifier
+            )
+            return True
+
+    def verify_master_password(self, password: str) -> bool:
+        """Re-verify the currently logged-in user's password.
+
+        Used by :class:`MasterPasswordOverlay` to gate sensitive actions
+        (revealing/copying a stored password) inside the detail view.
         """
-        return self.data_manager.register_user(username, password)
-    
+        if _state.current_user_id is None:
+            return False
+        with vault_repository.session_scope() as session:
+            user = session.get(vault_repository.User, _state.current_user_id)
+            if user is None:
+                return False
+            try:
+                derived = crypto_manager.derive_key(password, user.salt)
+            except Exception:
+                return False
+            return _verifier_for(derived) == user.verifier
+
     def logout(self) -> None:
-        """Clear authentication status."""
-        self._is_authenticated = False
-        self._current_user = None
+        """Clear all session state and zero the master key in RAM."""
+        crypto_manager.lock()
+        _state.current_user_id = None
+        _state.current_username = None
+        self._view_unlocked = False
+
+    # --- per-view re-auth flag (used by DetailView) ---
+
+    def is_authenticated(self) -> bool:
+        return self._view_unlocked
+
+    def set_authenticated(self, status: bool) -> None:
+        self._view_unlocked = status
+
+    # --- read-only helpers ---
+
+    def get_current_user(self) -> Optional[str]:
+        return _state.current_username
+
+    def get_current_user_id(self) -> Optional[int]:
+        return _state.current_user_id
+
+    def is_vault_unlocked(self) -> bool:
+        return crypto_manager.is_unlocked() and _state.current_user_id is not None
