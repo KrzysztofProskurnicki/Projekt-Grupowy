@@ -128,3 +128,44 @@ def count_weak(session: Session, user_id: int) -> int:
             PasswordEntry.weak_password.is_(True),
         )
     ).scalar_one()
+
+
+# --- user mutations ---
+
+def get_user_by_id(session: Session, user_id: int) -> Optional[User]:
+    return session.get(User, user_id)
+
+
+def update_user_credentials(
+    session: Session, user_id: int, new_salt: bytes, new_verifier: bytes
+) -> None:
+    """Update user salt and verifier after a master password change."""
+    user = session.get(User, user_id)
+    if user is not None:
+        user.salt = new_salt
+        user.verifier = new_verifier
+
+
+def delete_user(session: Session, user_id: int) -> bool:
+    """Delete a user and all their entries (cascade). Returns True on success."""
+    user = session.get(User, user_id)
+    if user is None:
+        return False
+    session.delete(user)
+    return True
+
+
+def update_entry_encrypted_fields(
+    session: Session,
+    entry_id: int,
+    enc_email: Optional[bytes],
+    enc_password: Optional[bytes],
+    enc_notes: Optional[bytes],
+) -> None:
+    """Update the encrypted blobs of a single entry (used during re-encryption)."""
+    entry = session.get(PasswordEntry, entry_id)
+    if entry is not None:
+        entry.enc_email = enc_email
+        entry.enc_password = enc_password
+        entry.enc_notes = enc_notes
+

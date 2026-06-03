@@ -126,3 +126,107 @@ class AuthenticationService:
 
     def is_vault_unlocked(self) -> bool:
         return crypto_manager.is_unlocked() and _state.current_user_id is not None
+
+    # --- profile operations ---
+
+    def get_user_created_at(self):
+        """Return the creation datetime of the current user, or None."""
+        if _state.current_user_id is None:
+            return None
+        with vault_repository.session_scope() as session:
+            user = vault_repository.get_user_by_id(session, _state.current_user_id)
+            return user.created_at if user else None
+
+    def change_master_password(
+        self, old_password: str, new_password: str, progress_callback=None
+    ) -> bool:
+        """Change the master password: verify old, re-encrypt all entries, update credentials.
+
+        Args:
+            old_password: Current master password for verification.
+            new_password: New master password to set.
+            progress_callback: Optional callable(int) receiving 0-100 progress %.
+
+        Returns:
+            True on success, False if old_password is wrong.
+        """
+        if _state.current_user_id is None:
+            return False
+
+        # 1. Verify old password
+        if not self.verify_master_password(old_password):
+            return False
+
+        # 2. Derive new key
+        new_salt = crypto_manager.generate_salt()
+        new_key = crypto_manager.derive_key(new_password, new_salt)
+        new_verifier = _verifier_for(new_key)
+
+        # 3. Re-encrypt every entry: decrypt with old key, encrypt with new key
+        with vault_repository.session_scope() as session:
+            entries = vault_repository.list_entries(session, _state.current_user_id)
+            total = len(entries)
+
+            for i, entry in enumerate(entries):
+                # Decrypt with current key
+                plain_email = ""
+                plain_password = ""
+                plain_notes = ""
+                try:
+                    if entry.enc_email:
+                        plain_email = crypto_manager.decrypt(entry.enc_email)
+                    if entry.enc_password:
+                        plain_password = crypto_manager.decrypt(entry.enc_password)
+                    if entry.enc_notes:
+                        plain_notes = crypto_manager.decrypt(entry.enc_notes)
+                except Exception:
+                    pass
+
+                # Encrypt with new key
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                import os
+                aesgcm = AESGCM(new_key)
+
+                def _enc(text):
+                    if not text:
+                        return None
+                    nonce = os.urandom(12)
+                    return nonce + aesgcm.encrypt(nonce, text.encode("utf-8"), None)
+
+                vault_repository.update_entry_encrypted_fields(
+                    session,
+                    entry.id,
+                    enc_email=_enc(plain_email),
+                    enc_password=_enc(plain_password),
+                    enc_notes=_enc(plain_notes),
+                )
+
+                if progress_callback and total > 0:
+                    progress_callback(int((i + 1) / total * 100))
+
+            # 4. Update user credentials
+            vault_repository.update_user_credentials(
+                session, _state.current_user_id, new_salt, new_verifier
+            )
+
+        # 5. Switch in-memory key to the new one
+        crypto_manager.unlock(new_key)
+
+        if progress_callback:
+            progress_callback(100)
+
+        return True
+
+    def delete_current_account(self) -> bool:
+        """Delete the currently logged-in user and all their vault data."""
+        if _state.current_user_id is None:
+            return False
+        with vault_repository.session_scope() as session:
+            result = vault_repository.delete_user(session, _state.current_user_id)
+        if result:
+            crypto_manager.lock()
+            _state.current_user_id = None
+            _state.current_username = None
+            self._view_unlocked = False
+        return result
+

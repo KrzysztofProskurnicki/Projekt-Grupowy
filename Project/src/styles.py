@@ -106,3 +106,80 @@ STYLESHEET = """
         font-weight: bold;
     }
 """
+
+STYLESHEET_LIGHT = """
+    QMainWindow {
+        background-color: #f2f2f7;
+    }
+    QListWidget {
+        background-color: transparent;
+        border: none;
+        outline: none;
+    }
+    QListWidget::item {
+        background-color: transparent;
+        padding: 0px;
+        border: none;
+    }
+    QListWidget::item:selected {
+        background-color: transparent;
+    }
+    QScrollArea {
+        border: none;
+        background-color: transparent;
+    }
+    QLineEdit {
+        background-color: #ffffff;
+        color: #1c1c1e;
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #d1d1d6;
+        font-size: 14px;
+    }
+    QLineEdit:focus {
+        border: 1px solid #007aff;
+    }
+    QLabel#AppTitle {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1c1c1e;
+        padding: 24px;
+    }
+    QFrame#Sidebar {
+        background-color: #ffffff;
+        border-right: 1px solid #d1d1d6;
+        min-width: 280px;
+        max-width: 280px;
+    }
+    QPushButton.nav-btn {
+        text-align: left;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #6e6e73;
+        font-size: 20px;
+        font-weight: 500;
+        background-color: transparent;
+        border: none;
+    }
+    QPushButton.nav-btn:hover {
+        background-color: #e5e5ea;
+        color: #1c1c1e;
+    }
+    QPushButton.nav-btn:checked {
+        background-color: #007aff;
+        color: white;
+    }
+    QLabel.badge {
+        color: #6e6e73;
+        font-size: 14px;
+        font-weight: bold;
+    }
+"""
+
+
+def get_stylesheet(theme: str) -> str:
+    """Return the global stylesheet for the given theme name."""
+    if theme == "light":
+        return STYLESHEET_LIGHT
+    return STYLESHEET
+

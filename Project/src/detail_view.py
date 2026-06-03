@@ -167,15 +167,15 @@ class DetailView(QWidget):
             self.eye_btn.setFixedSize(30, 30)
             self.eye_btn.setCursor(Qt.PointingHandCursor)
             self.eye_btn.setStyleSheet("color: #0a84ff; border: none; font-size: 16px; background: transparent;")
-            self.eye_btn.clicked.connect(self.toggle_password_visibility_with_auth)
+            self.eye_btn.clicked.connect(self.toggle_password_visibility)
             row.addWidget(self.eye_btn)
             
-            # Copy password button (requires auth)
+            # Copy password button
             copy_pwd_btn = QPushButton("❐")
             copy_pwd_btn.setFixedSize(30, 30)
             copy_pwd_btn.setCursor(Qt.PointingHandCursor)
             copy_pwd_btn.setStyleSheet("color: #0a84ff; border: none; font-size: 16px; background: transparent;")
-            copy_pwd_btn.clicked.connect(self.copy_password_with_auth)
+            copy_pwd_btn.clicked.connect(lambda: self.copy_with_notification(self.actual_password, "PASSWORD"))
             row.addWidget(copy_pwd_btn)
         
         if is_copyable and not is_multiline and not is_password:
@@ -319,9 +319,6 @@ class DetailView(QWidget):
         self.current_name = name
         self.is_favorite = favorite
         self.actual_password = password
-        # Reset re-auth gate every time a different entry is opened so the
-        # master-password overlay re-prompts before revealing/copying.
-        self.auth_service.set_authenticated(False)
         self.update_star_style()
 
         self.title_label.setText(name)

@@ -146,3 +146,24 @@ class PasswordService:
             "weak_password": weak,
             "favorite": favorite,
         })
+
+    # --- export ---
+
+    def export_to_csv(self, filepath: str) -> None:
+        """Export all decrypted passwords to a CSV file (name, email, password).
+
+        Args:
+            filepath: Absolute path where the CSV file will be written.
+        """
+        import csv
+
+        with open(filepath, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Name", "Email", "Password"])
+            for entry in self._cache:
+                writer.writerow([
+                    entry.get("name", ""),
+                    entry.get("email", ""),
+                    entry.get("password", ""),
+                ])
+

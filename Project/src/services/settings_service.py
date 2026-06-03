@@ -1,0 +1,150 @@
+import json
+import os
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_DIR = os.path.dirname(os.path.dirname(_BASE_DIR))
+_SETTINGS_FILE = os.path.join(_PROJECT_DIR, 'config', 'settings.json')
+
+_DEFAULTS = {
+    'auto_lock_minutes': 0,
+    'clipboard_clear_seconds': 0,
+    'theme': 'dark',
+    'font_size': 14,
+}
+
+_VALID_AUTO_LOCK = (0, 1, 5, 10, 15, 30)
+_VALID_CLIPBOARD_CLEAR = (0, 10, 30, 60, 120)
+_VALID_THEMES = ('dark', 'light')
+_FONT_SIZE_MIN = 10
+_FONT_SIZE_MAX = 22
+
+
+class SettingsService:
+    """Singleton-like settings service that persists to a JSON file."""
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+        self._settings: dict = dict(_DEFAULTS)
+        self.load()
+
+    # ------------------------------------------------------------------
+    # Public helpers
+    # ------------------------------------------------------------------
+
+    def get(self, key: str):
+        """Return the value for *key*, or its default if unknown."""
+        return self._settings.get(key, _DEFAULTS.get(key))
+
+    def set(self, key: str, value) -> None:
+        """Set *key* to *value* (with validation) and persist to disk."""
+        value = self._validate(key, value)
+        self._settings[key] = value
+        self.save()
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
+    def save(self) -> None:
+        """Write current settings to the JSON file."""
+        config_dir = os.path.dirname(_SETTINGS_FILE)
+        os.makedirs(config_dir, exist_ok=True)
+        with open(_SETTINGS_FILE, 'w', encoding='utf-8') as fh:
+            json.dump(self._settings, fh, indent=4)
+
+    def load(self) -> None:
+        """Read settings from the JSON file, creating defaults if missing."""
+        if os.path.isfile(_SETTINGS_FILE):
+            try:
+                with open(_SETTINGS_FILE, 'r', encoding='utf-8') as fh:
+                    data = json.load(fh)
+                if isinstance(data, dict):
+                    for key, value in data.items():
+                        try:
+                            self._settings[key] = self._validate(key, value)
+                        except (ValueError, TypeError):
+                            self._settings[key] = _DEFAULTS.get(key, value)
+            except (json.JSONDecodeError, OSError):
+                self._settings = dict(_DEFAULTS)
+        else:
+            self._settings = dict(_DEFAULTS)
+            self.save()
+
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
+
+    @property
+    def auto_lock_minutes(self) -> int:
+        return self.get('auto_lock_minutes')
+
+    @auto_lock_minutes.setter
+    def auto_lock_minutes(self, value: int) -> None:
+        self.set('auto_lock_minutes', value)
+
+    @property
+    def clipboard_clear_seconds(self) -> int:
+        return self.get('clipboard_clear_seconds')
+
+    @clipboard_clear_seconds.setter
+    def clipboard_clear_seconds(self, value: int) -> None:
+        self.set('clipboard_clear_seconds', value)
+
+    @property
+    def theme(self) -> str:
+        return self.get('theme')
+
+    @theme.setter
+    def theme(self, value: str) -> None:
+        self.set('theme', value)
+
+    @property
+    def font_size(self) -> int:
+        return self.get('font_size')
+
+    @font_size.setter
+    def font_size(self, value: int) -> None:
+        self.set('font_size', value)
+
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate(key: str, value):
+        """Return a validated value or raise ``ValueError``."""
+        if key == 'auto_lock_minutes':
+            value = int(value)
+            if value not in _VALID_AUTO_LOCK:
+                raise ValueError(
+                    f"auto_lock_minutes must be one of {_VALID_AUTO_LOCK}, got {value}"
+                )
+        elif key == 'clipboard_clear_seconds':
+            value = int(value)
+            if value not in _VALID_CLIPBOARD_CLEAR:
+                raise ValueError(
+                    f"clipboard_clear_seconds must be one of {_VALID_CLIPBOARD_CLEAR}, got {value}"
+                )
+        elif key == 'theme':
+            value = str(value)
+            if value not in _VALID_THEMES:
+                raise ValueError(
+                    f"theme must be one of {_VALID_THEMES}, got {value!r}"
+                )
+        elif key == 'font_size':
+            value = int(value)
+            if not (_FONT_SIZE_MIN <= value <= _FONT_SIZE_MAX):
+                raise ValueError(
+                    f"font_size must be between {_FONT_SIZE_MIN} and {_FONT_SIZE_MAX}, got {value}"
+                )
+        return value

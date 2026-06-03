@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
                              QListWidgetItem, QPushButton, QStackedWidget,
                              QFrame)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt5.QtGui import QFont
 
 
@@ -20,8 +20,11 @@ from detail_view import DetailView
 from services.password_service import PasswordService
 from services.authentication_service import AuthenticationService
 from services.migration import migrate_if_needed
+from services.settings_service import SettingsService
 from widgets.password_item_widget import PasswordItemWidget
 from add_password_view import AddPasswordView
+from profile_view import ProfileView
+from settings_view import SettingsView
 
 
 
@@ -46,7 +49,22 @@ class MainWindow(QMainWindow):
         
         # Inicjalizuj serwisy (scoped to user)
         self.password_service = PasswordService(username)
+        self.settings_service = SettingsService()
         self.current_filter = FILTER_ALL
+        
+        # Setup Auto-Lock Timer
+        self.auto_lock_timer = QTimer(self)
+        self.auto_lock_timer.timeout.connect(self._on_auto_lock)
+        self._update_auto_lock_timer()
+        
+        # Install event filter to track user activity for Auto-Lock
+        QApplication.instance().installEventFilter(self)
+        
+        # Setup Clipboard Auto-Clear
+        self.clipboard_clear_timer = QTimer(self)
+        self.clipboard_clear_timer.setSingleShot(True)
+        self.clipboard_clear_timer.timeout.connect(self._clear_clipboard)
+        QApplication.clipboard().dataChanged.connect(self._on_clipboard_changed)
         
         # Główny kontener
         main_widget = QWidget()
@@ -132,14 +150,14 @@ class MainWindow(QMainWindow):
         self.page_vault.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
         self.stacked_widget.addWidget(self.page_vault)  # Index 3
         
-        self.page_settings = QLabel("Settings View (Coming Soon)")
-        self.page_settings.setAlignment(Qt.AlignCenter)
-        self.page_settings.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
+        self.page_settings = SettingsView(self.settings_service)
+        self.page_settings.settings_changed.connect(self._on_settings_changed)
+        self.page_settings.theme_changed.connect(self._on_theme_changed)
+        self.page_settings.font_size_changed.connect(self._on_font_size_changed)
         self.stacked_widget.addWidget(self.page_settings)  # Index 4
         
-        self.page_profile = QLabel("Profile View (Coming Soon)")
-        self.page_profile.setAlignment(Qt.AlignCenter)
-        self.page_profile.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
+        self.page_profile = ProfileView(username, self.password_service)
+        self.page_profile.account_deleted.connect(self._on_logout)
         self.stacked_widget.addWidget(self.page_profile)  # Index 5
         
         # Add Password Form Page
@@ -161,9 +179,55 @@ class MainWindow(QMainWindow):
     
     def _on_logout(self):
         """Handle logout - clear vault key, emit signal, close window."""
+        QApplication.instance().removeEventFilter(self)
+        self.auto_lock_timer.stop()
         AuthenticationService().logout()
         self.logout_signal.emit()
         self.close()
+        
+    def _on_auto_lock(self):
+        """Triggered when auto-lock timer expires."""
+        print("Auto-locking vault due to inactivity.")
+        self._on_logout()
+        
+    def _update_auto_lock_timer(self):
+        """Update auto-lock timer based on settings."""
+        minutes = self.settings_service.auto_lock_minutes
+        if minutes > 0:
+            self.auto_lock_timer.start(minutes * 60 * 1000)
+        else:
+            self.auto_lock_timer.stop()
+
+    def eventFilter(self, obj, event):
+        """Intercept events to reset the auto-lock timer on user activity."""
+        if event.type() in (QEvent.KeyPress, QEvent.MouseMove, QEvent.MouseButtonPress):
+            if self.settings_service.auto_lock_minutes > 0:
+                self.auto_lock_timer.start(self.settings_service.auto_lock_minutes * 60 * 1000)
+        return super().eventFilter(obj, event)
+
+    def _on_clipboard_changed(self):
+        """Start clipboard clear timer if setting is enabled and clipboard has text."""
+        seconds = self.settings_service.clipboard_clear_seconds
+        if seconds > 0 and QApplication.clipboard().text():
+            self.clipboard_clear_timer.start(seconds * 1000)
+
+    def _clear_clipboard(self):
+        """Clear the clipboard."""
+        QApplication.clipboard().clear()
+        
+    def _on_settings_changed(self, key, value):
+        if key == 'auto_lock_minutes':
+            self._update_auto_lock_timer()
+            
+    def _on_theme_changed(self, theme):
+        app = QApplication.instance()
+        app.setStyleSheet(get_stylesheet(theme))
+        
+    def _on_font_size_changed(self, size):
+        app = QApplication.instance()
+        font = app.font()
+        font.setPointSize(size)
+        app.setFont(font)
     
     def load_data(self):
         """Load password data - delegated to service (deprecated)."""
@@ -352,12 +416,14 @@ def run_app():
 
     app = QApplication(sys.argv)
 
-    # Ustawienie fontu na systemowy sans-serif
-    font = QFont("Segoe UI", 14) if sys.platform == "win32" else QFont("Helvetica Neue", 14)
+    # Ustawienie fontu na systemowy sans-serif z configu
+    from services.settings_service import SettingsService
+    settings = SettingsService()
+    font = QFont("Segoe UI", settings.font_size) if sys.platform == "win32" else QFont("Helvetica Neue", settings.font_size)
     app.setFont(font)
 
-    # Aplikowanie stylów
-    app.setStyleSheet(STYLESHEET)
+    # Aplikowanie stylów z configu
+    app.setStyleSheet(get_stylesheet(settings.theme))
     
     while True:
         # Show Login Dialog
