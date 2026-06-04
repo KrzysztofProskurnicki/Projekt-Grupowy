@@ -9,6 +9,7 @@ from widgets.gauge_widget import GaugeWidget
 from widgets.vault_status_bar import VaultStatusBar
 from services.security_service import SecurityService
 from styles import *
+import styles
 
 
 
@@ -32,23 +33,31 @@ class SecurityView(QWidget):
     
     def create_section_frame(self):
         frame = QFrame()
-        frame.setStyleSheet(f"background-color: {CARD_BG}; border-radius: 12px;")
+        frame.setStyleSheet(f"background-color: {styles.CARD_BG}; border-radius: 12px;")
         return frame
     
     def init_ui(self):
+        # If rebuilding, detach old layout completely
+        old = self.layout()
+        if old is not None:
+            QWidget().setLayout(old)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet(f"QScrollArea {{ border: none; background-color: {DARK_BG}; }} QScrollBar:vertical {{ width: 0px; }}")
+        scroll.setStyleSheet(f"QScrollArea {{ border: none; background-color: {styles.DARK_BG}; }} QScrollBar:vertical {{ width: 0px; }}")
         
         content = QWidget()
-        content.setStyleSheet(f"background-color: {DARK_BG};")
+        content.setStyleSheet(f"background-color: {styles.DARK_BG};")
         layout = QVBoxLayout(content)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(30)
         
         # Header
         title = QLabel("🛡️ Security Dashboard")
-        title.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {TEXT_PRIMARY}; margin-bottom: 10px;")
+        title.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 10px;")
         layout.addWidget(title)
         
         # --- Top Section: 2 Columns (Stats Left | Gauge Right) ---
@@ -62,14 +71,14 @@ class SecurityView(QWidget):
         stats_layout.setSpacing(15)
         
         row1 = QHBoxLayout()
-        self.total_card = self.create_stat_card("Total Accounts", "0", COLOR_BLUE, "🔑")
-        self.fav_card = self.create_stat_card("Favorites", "0", COLOR_YELLOW, "⭐")
+        self.total_card = self.create_stat_card("Total Accounts", "0", styles.COLOR_BLUE, "🔑")
+        self.fav_card = self.create_stat_card("Favorites", "0", styles.COLOR_YELLOW, "⭐")
         row1.addWidget(self.total_card)
         row1.addWidget(self.fav_card)
         
         row2 = QHBoxLayout()
-        self.strong_card = self.create_stat_card("Strong Passwords", "0", COLOR_GREEN, "✓")
-        self.weak_card = self.create_stat_card("Weak Passwords", "0", COLOR_RED, "⚠️")
+        self.strong_card = self.create_stat_card("Strong Passwords", "0", styles.COLOR_GREEN, "✓")
+        self.weak_card = self.create_stat_card("Weak Passwords", "0", styles.COLOR_RED, "⚠️")
         row2.addWidget(self.strong_card)
         row2.addWidget(self.weak_card)
         
@@ -85,7 +94,7 @@ class SecurityView(QWidget):
         chart_layout.setContentsMargins(20, 15, 20, 15)
 
         gauge_title = QLabel("Security Score")
-        gauge_title.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {TEXT_PRIMARY}; margin-bottom: 5px;")
+        gauge_title.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 5px;")
         chart_layout.addWidget(gauge_title)
         
         self.gauge = GaugeWidget()
@@ -100,7 +109,7 @@ class SecurityView(QWidget):
         bar_layout.setContentsMargins(30, 25, 30, 30)
         
         bar_title = QLabel("Vault Overview")
-        bar_title.setStyleSheet("font-size: 16px; font-weight: bold; color: " + TEXT_PRIMARY + "; margin-bottom: 15px;")
+        bar_title.setStyleSheet("font-size: 16px; font-weight: bold; color: " + styles.TEXT_PRIMARY + "; margin-bottom: 15px;")
         bar_layout.addWidget(bar_title)
         
         self.vault_bar = VaultStatusBar()
@@ -118,7 +127,7 @@ class SecurityView(QWidget):
         weak_layout.setContentsMargins(20, 20, 20, 20)
         
         weak_head = QLabel("⚠️ Weak Passwords")
-        weak_head.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {COLOR_RED};")
+        weak_head.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {styles.COLOR_RED};")
         weak_layout.addWidget(weak_head)
         
         self.weak_list_widget = QWidget()
@@ -136,12 +145,12 @@ class SecurityView(QWidget):
         tips_layout = QVBoxLayout(tips_frame)
         tips_layout.setContentsMargins(20, 20, 20, 20)
         tips_head = QLabel("💡 Security Tips")
-        tips_head.setStyleSheet(SECTION_TITLE_STYLE)
+        tips_head.setStyleSheet(styles.SECTION_TITLE_STYLE)
         tips_layout.addWidget(tips_head)
         
         for tip in ["• Enable 2FA on all financial accounts", "• Use unique passwords everywhere", "• Rotate critical passwords yearly", "• Use a password manager (like this one!)"]:
             t = QLabel(tip)
-            t.setStyleSheet(f"font-size: 14px; color: {TEXT_SECONDARY}; padding: 4px 0;")
+            t.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; padding: 4px 0;")
             tips_layout.addWidget(t)
         tips_layout.addStretch()
         
@@ -153,7 +162,7 @@ class SecurityView(QWidget):
         table_layout = QVBoxLayout(table_frame)
         table_layout.setContentsMargins(20, 20, 20, 20)
         table_title = QLabel("📋 All Passwords")
-        table_title.setStyleSheet(SECTION_TITLE_STYLE)
+        table_title.setStyleSheet(styles.SECTION_TITLE_STYLE)
         table_layout.addWidget(table_title)
         
         self.table = QTableWidget()
@@ -161,10 +170,10 @@ class SecurityView(QWidget):
         self.table.cellDoubleClicked.connect(self.on_table_double_clicked)
         self.table.setHorizontalHeaderLabels(["Name", "Email", "Status", "Crack Time", "Favorite"])
         self.table.setStyleSheet(f"""
-            QTableWidget {{ background-color: {DARK_BG}; color: {TEXT_PRIMARY}; border: none; }}
+            QTableWidget {{ background-color: {styles.DARK_BG}; color: {styles.TEXT_PRIMARY}; border: none; }}
             QTableWidget::item {{ padding: 10px; }}
-            QHeaderView::section {{ background-color: {CARD_BG}; color: {TEXT_PRIMARY}; padding: 10px; border: none; font-weight: bold; border-bottom: 2px solid #38383a; }}
-            QTableWidget::item:selected {{ background-color: {COLOR_BLUE}; }}
+            QHeaderView::section {{ background-color: {styles.CARD_BG}; color: {styles.TEXT_PRIMARY}; padding: 10px; border: none; font-weight: bold; border-bottom: 2px solid {styles.BORDER_COLOR}; }}
+            QTableWidget::item:selected {{ background-color: {styles.COLOR_BLUE}; }}
         """)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.verticalHeader().setVisible(False)
@@ -175,13 +184,18 @@ class SecurityView(QWidget):
         
         scroll.setWidget(content)
         
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(scroll)
+
+    def refresh_theme(self):
+        """Clear and rebuild the entire UI to pick up new theme colours."""
+        saved_data = list(self.passwords_data)
+        self.init_ui()
+        if saved_data:
+            self.update_stats(saved_data)
 
     def create_stat_card(self, title, value, color, icon):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {CARD_BG}; border-radius: 12px; border-left: 4px solid " + color + ";")
+        card.setStyleSheet(f"background-color: {styles.CARD_BG}; border-radius: 12px; border-left: 4px solid " + color + ";")
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -198,7 +212,7 @@ class SecurityView(QWidget):
         layout.addLayout(top)
         
         tit = QLabel(title)
-        tit.setStyleSheet(f"font-size: 13px; color: {TEXT_SECONDARY}; border: none; background: transparent;")
+        tit.setStyleSheet(f"font-size: 13px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
         layout.addWidget(tit)
         return card
 
@@ -245,12 +259,12 @@ class SecurityView(QWidget):
                 l = QHBoxLayout(f)
                 l.setContentsMargins(0, 0, 0, 0)
                 l.addWidget(QLabel("⚠️", objectName="icon"))
-                l.addWidget(QLabel(acc['name'], styleSheet=f"color:{TEXT_PRIMARY}; font-weight:500;"))
-                l.addWidget(QLabel(f"({acc['email']})", styleSheet=f"color:{TEXT_SECONDARY};"))
+                l.addWidget(QLabel(acc['name'], styleSheet=f"color:{styles.TEXT_PRIMARY}; font-weight:500;"))
+                l.addWidget(QLabel(f"({acc['email']})", styleSheet=f"color:{styles.TEXT_SECONDARY};"))
                 l.addStretch()
                 self.weak_list_layout.addWidget(f)
         else:
-            self.weak_list_layout.addWidget(QLabel("Avalanche Secure! 🎉", styleSheet=f"color:{COLOR_GREEN}; font-style:italic;"))
+            self.weak_list_layout.addWidget(QLabel("Avalanche Secure! 🎉", styleSheet=f"color:{styles.COLOR_GREEN}; font-style:italic;"))
             
         # Table
         total = stats['total']
@@ -260,7 +274,7 @@ class SecurityView(QWidget):
             self.table.setItem(i, 1, QTableWidgetItem(p['email']))
             s_text = "⚠️ Weak" if p.get('weak_password') else "✓ Strong"
             s_item = QTableWidgetItem(s_text)
-            s_item.setForeground(QColor(COLOR_RED if p.get('weak_password') else COLOR_GREEN))
+            s_item.setForeground(QColor(styles.COLOR_RED if p.get('weak_password') else styles.COLOR_GREEN))
             self.table.setItem(i, 2, s_item)
 
             sim_pwd = "password" if p.get('weak_password') else "S3cur3P@ss!"

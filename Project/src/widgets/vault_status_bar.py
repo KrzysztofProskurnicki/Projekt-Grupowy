@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QFont
 from styles import COLOR_GREEN, COLOR_RED, COLOR_YELLOW, COLOR_BLUE
+import styles
 
 
 class VaultStatusBar(QWidget):
@@ -52,7 +53,7 @@ class VaultStatusBar(QWidget):
         
         # --- 1. Background Track ---
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor("#2c2c2e"))
+        painter.setBrush(QColor(styles.HOVER_BG))
         painter.drawRoundedRect(0, y_bar, w_total, bar_h, 12, 12)
         
         # Calculate widths
@@ -101,7 +102,7 @@ class VaultStatusBar(QWidget):
                 
                 # Text
                 label_full = f"{label} ({int((val/total)*100)}%)"
-                painter.setPen(QColor("#b0b0b5"))
+                painter.setPen(QColor(styles.TEXT_SECONDARY))
                 painter.drawText(int(x_leg) + 15, int(y_leg), label_full)
                 
                 # Advance

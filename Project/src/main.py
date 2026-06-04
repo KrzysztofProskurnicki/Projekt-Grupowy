@@ -11,6 +11,7 @@ from PyQt5.QtGui import QFont
 
 # Application modules
 from styles import *
+import styles
 from config import *
 from constants import *
 from login_dialog import LoginDialog
@@ -95,9 +96,9 @@ class MainWindow(QMainWindow):
         list_layout.setSpacing(0)
         
         # Search & Actions Header
-        header_widget = QWidget()
-        header_widget.setStyleSheet(f"background-color: {DARK_BG}; border-bottom: 1px solid #38383a;")
-        header_layout = QHBoxLayout(header_widget)
+        self.header_widget = QWidget()
+        self.header_widget.setStyleSheet(f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};")
+        header_layout = QHBoxLayout(self.header_widget)
         header_layout.setContentsMargins(20, 20, 20, 20)
         
         # Search Bar
@@ -125,7 +126,7 @@ class MainWindow(QMainWindow):
         add_btn.clicked.connect(self.show_add_form)
         header_layout.addWidget(add_btn)
         
-        list_layout.addWidget(header_widget)
+        list_layout.addWidget(self.header_widget)
         
         # Password List
         self.list_widget = QListWidget()
@@ -220,8 +221,26 @@ class MainWindow(QMainWindow):
             self._update_auto_lock_timer()
             
     def _on_theme_changed(self, theme):
+        styles.apply_theme(theme)
         app = QApplication.instance()
-        app.setStyleSheet(get_stylesheet(theme))
+        app.setStyleSheet(styles.get_stylesheet(theme))
+        # Refresh all views
+        self._refresh_all_views()
+        
+    def _refresh_all_views(self):
+        """Rebuild all view UIs with current theme colors."""
+        # Refresh the password list header
+        self.header_widget.setStyleSheet(
+            f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};"
+        )
+        # Refresh views that support it
+        for view in (self.page_detail, self.page_security,
+                     self.page_add_password, self.page_profile,
+                     self.page_settings):
+            if hasattr(view, 'refresh_theme'):
+                view.refresh_theme()
+        # Rebuild password list cards
+        self.refresh_list()
         
     def _on_font_size_changed(self, size):
         app = QApplication.instance()
@@ -289,11 +308,11 @@ class MainWindow(QMainWindow):
         card_frame.setObjectName("cardFrame")
         card_frame.setStyleSheet(f"""
             QFrame#cardFrame {{
-                background-color: {CARD_BG};
+                background-color: {styles.CARD_BG};
                 border-radius: 12px;
             }}
             QFrame#cardFrame:hover {{
-                background-color: #3a3a3c;
+                background-color: {styles.HOVER_BG};
             }}
         """)
         
@@ -324,10 +343,10 @@ class MainWindow(QMainWindow):
         vbox.setAlignment(Qt.AlignVCenter)
         
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet(f"font-size: 24px; font-weight: 600; color: {TEXT_PRIMARY}; border: none; background: transparent;")
+        title_lbl.setStyleSheet(f"font-size: 24px; font-weight: 600; color: {styles.TEXT_PRIMARY}; border: none; background: transparent;")
         
         subtitle_lbl = QLabel(subtitle)
-        subtitle_lbl.setStyleSheet(f"font-size: 16px; color: {TEXT_SECONDARY}; border: none; background: transparent;")
+        subtitle_lbl.setStyleSheet(f"font-size: 16px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
         
         vbox.addWidget(title_lbl)
         vbox.addWidget(subtitle_lbl)
@@ -343,7 +362,7 @@ class MainWindow(QMainWindow):
             
         # Chevron
         chevron = QLabel("›")
-        chevron.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 24px; font-weight: bold; background: transparent; border: none;")
+        chevron.setStyleSheet(f"color: {styles.TEXT_SECONDARY}; font-size: 24px; font-weight: bold; background: transparent; border: none;")
         hbox.addWidget(chevron)
         
         # Add Card to Container
@@ -423,7 +442,8 @@ def run_app():
     app.setFont(font)
 
     # Aplikowanie stylów z configu
-    app.setStyleSheet(get_stylesheet(settings.theme))
+    styles.apply_theme(settings.theme)
+    app.setStyleSheet(styles.get_stylesheet(settings.theme))
     
     while True:
         # Show Login Dialog

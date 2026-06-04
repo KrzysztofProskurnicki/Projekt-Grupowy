@@ -1,5 +1,6 @@
 """Add Password View - Form for adding new password entries."""
 
+import styles
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QTextEdit, QPushButton, QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -20,7 +21,7 @@ class AddPasswordView(QWidget):
     
     def init_ui(self):
         """Build the add password form UI."""
-        self.setStyleSheet(f"background-color: {DARK_BG};")
+        self.setStyleSheet(f"background-color: {styles.DARK_BG};")
         
         # Main layout
         outer_layout = QVBoxLayout(self)
@@ -29,7 +30,7 @@ class AddPasswordView(QWidget):
         
         # Header bar
         header_widget = QWidget()
-        header_widget.setStyleSheet(f"background-color: {DARK_BG}; border-bottom: 1px solid #38383a;")
+        header_widget.setStyleSheet(f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};")
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(24, 16, 24, 16)
         
@@ -39,7 +40,7 @@ class AddPasswordView(QWidget):
         back_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {COLOR_BLUE};
+                color: {styles.COLOR_BLUE};
                 border: none;
                 font-size: 16px;
                 font-weight: 600;
@@ -56,7 +57,7 @@ class AddPasswordView(QWidget):
         
         # Title
         title_label = QLabel("Add New Password")
-        title_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {TEXT_PRIMARY}; background: transparent;")
+        title_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {styles.TEXT_PRIMARY}; background: transparent;")
         title_label.setAlignment(Qt.AlignCenter)
         header_layout.addWidget(title_label)
         
@@ -79,9 +80,9 @@ class AddPasswordView(QWidget):
         form_card = QFrame()
         form_card.setMaximumWidth(600)
         form_card.setStyleSheet(f"""
-            background-color: {CARD_BG};
+            background-color: {styles.CARD_BG};
             border-radius: 16px;
-            border: 1px solid {BORDER_COLOR};
+            border: 1px solid {styles.BORDER_COLOR};
         """)
         card_layout = QVBoxLayout(form_card)
         card_layout.setContentsMargins(32, 32, 32, 32)
@@ -89,7 +90,7 @@ class AddPasswordView(QWidget):
         
         # --- Website field ---
         website_label = QLabel("Website")
-        website_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        website_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(website_label)
         
         self.website_input = QLineEdit()
@@ -99,7 +100,7 @@ class AddPasswordView(QWidget):
         
         # --- Username field ---
         username_label = QLabel("Username")
-        username_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        username_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(username_label)
         
         self.username_input = QLineEdit()
@@ -109,7 +110,7 @@ class AddPasswordView(QWidget):
         
         # --- Password field ---
         password_label = QLabel("Password")
-        password_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        password_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(password_label)
 
         # Password input + Generate button in one row.
@@ -127,19 +128,19 @@ class AddPasswordView(QWidget):
         generate_btn.setToolTip("Generate a strong random password")
         generate_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #3a3a3c;
-                color: {COLOR_BLUE};
-                border: 1px solid {BORDER_COLOR};
+                background-color: {styles.INPUT_BG};
+                color: {styles.COLOR_BLUE};
+                border: 1px solid {styles.BORDER_COLOR};
                 border-radius: 8px;
                 padding: 10px 14px;
                 font-size: 14px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
-                background-color: #48484a;
+                background-color: {styles.BORDER_COLOR};
             }}
             QPushButton:pressed {{
-                background-color: {CARD_BG};
+                background-color: {styles.CARD_BG};
             }}
         """)
         generate_btn.clicked.connect(self._on_generate)
@@ -149,7 +150,7 @@ class AddPasswordView(QWidget):
         
         # --- Notes field ---
         notes_label = QLabel("Notes")
-        notes_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_SECONDARY}; background: transparent; border: none;")
+        notes_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(notes_label)
         
         self.notes_input = QTextEdit()
@@ -157,15 +158,15 @@ class AddPasswordView(QWidget):
         self.notes_input.setFixedHeight(100)
         self.notes_input.setStyleSheet(f"""
             QTextEdit {{
-                background-color: #3a3a3c;
-                color: {TEXT_PRIMARY};
+                background-color: {styles.INPUT_BG};
+                color: {styles.TEXT_PRIMARY};
                 border-radius: 8px;
                 padding: 12px;
-                border: 1px solid {BORDER_COLOR};
+                border: 1px solid {styles.BORDER_COLOR};
                 font-size: 14px;
             }}
             QTextEdit:focus {{
-                border: 1px solid {COLOR_BLUE};
+                border: 1px solid {styles.COLOR_BLUE};
             }}
         """)
         card_layout.addWidget(self.notes_input)
@@ -187,8 +188,8 @@ class AddPasswordView(QWidget):
         form_back_btn.setCursor(Qt.PointingHandCursor)
         form_back_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #3a3a3c;
-                color: {TEXT_PRIMARY};
+                background-color: {styles.INPUT_BG};
+                color: {styles.TEXT_PRIMARY};
                 border-radius: 8px;
                 padding: 12px 24px;
                 font-size: 16px;
@@ -196,10 +197,10 @@ class AddPasswordView(QWidget):
                 border: none;
             }}
             QPushButton:hover {{
-                background-color: #48484a;
+                background-color: {styles.BORDER_COLOR};
             }}
             QPushButton:pressed {{
-                background-color: {CARD_BG};
+                background-color: {styles.CARD_BG};
             }}
         """)
         form_back_btn.clicked.connect(self._on_back)
@@ -210,7 +211,7 @@ class AddPasswordView(QWidget):
         create_btn.setCursor(Qt.PointingHandCursor)
         create_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLOR_GREEN};
+                background-color: {styles.COLOR_GREEN};
                 color: white;
                 border-radius: 8px;
                 padding: 12px 24px;
@@ -245,17 +246,28 @@ class AddPasswordView(QWidget):
         """Return shared input field style."""
         return f"""
             QLineEdit {{
-                background-color: #3a3a3c;
-                color: {TEXT_PRIMARY};
+                background-color: {styles.INPUT_BG};
+                color: {styles.TEXT_PRIMARY};
                 border-radius: 8px;
                 padding: 12px;
-                border: 1px solid {BORDER_COLOR};
+                border: 1px solid {styles.BORDER_COLOR};
                 font-size: 14px;
             }}
             QLineEdit:focus {{
-                border: 1px solid {COLOR_BLUE};
+                border: 1px solid {styles.COLOR_BLUE};
             }}
         """
+    
+    def refresh_theme(self):
+        """Re-build the entire UI to pick up the latest theme colours."""
+        # Delete all children
+        for child in self.findChildren(QWidget):
+            child.deleteLater()
+        # Re-init
+        old_layout = self.layout()
+        if old_layout:
+            QWidget().setLayout(old_layout)
+        self.init_ui()
     
     def _on_generate(self):
         """Fill the password field with a freshly generated strong password.

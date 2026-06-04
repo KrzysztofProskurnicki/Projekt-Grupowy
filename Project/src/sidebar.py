@@ -3,6 +3,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal
 from widgets.nav_button_widget import NavButtonWidget
+import styles
 
 
 class Sidebar(QFrame):
@@ -55,29 +56,31 @@ class Sidebar(QFrame):
         
         # User footer with username
         self.user_footer = QLabel(f"Logged in as: {self._username}")
-        self.user_footer.setStyleSheet("color: #98989d; padding: 16px 16px 8px 16px; font-size: 12px;")
+        self.user_footer.setStyleSheet(
+            f"color: {styles.TEXT_SECONDARY}; padding: 16px 16px 8px 16px; font-size: 12px;"
+        )
         layout.addWidget(self.user_footer)
         
         # Logout button
         logout_btn = QPushButton("🚪  Logout")
         logout_btn.setCursor(Qt.PointingHandCursor)
-        logout_btn.setStyleSheet("""
-            QPushButton {
+        logout_btn.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
-                color: #ff453a;
-                border: 1px solid #ff453a;
+                color: {styles.COLOR_RED};
+                border: 1px solid {styles.COLOR_RED};
                 border-radius: 8px;
                 padding: 10px 16px;
                 font-size: 14px;
                 font-weight: 600;
                 margin: 4px 16px 16px 16px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: rgba(255, 69, 58, 0.15);
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: rgba(255, 69, 58, 0.3);
-            }
+            }}
         """)
         logout_btn.clicked.connect(self.logout_clicked.emit)
         layout.addWidget(logout_btn)
@@ -90,7 +93,7 @@ class Sidebar(QFrame):
                 nav_widget.badge.setStyleSheet("color: white;")
             else:
                 nav_widget.btn.setChecked(False)
-                nav_widget.badge.setStyleSheet("color: #98989d;")
+                nav_widget.badge.setStyleSheet(f"color: {styles.TEXT_SECONDARY};")
         
         self.nav_clicked.emit(index)
         

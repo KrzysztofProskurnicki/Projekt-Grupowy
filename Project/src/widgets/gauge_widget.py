@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, QPointF, pyqtProperty, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor, QPainter, QPen, QBrush, QLinearGradient, QFont, QPainterPath
 import math
+import styles
 
 
 class GaugeWidget(QWidget):
@@ -60,7 +61,7 @@ class GaugeWidget(QWidget):
         path_bg.closeSubpath()
         
         painter.setPen(Qt.NoPen)  # Bez obramowania
-        painter.setBrush(QColor("#2c2c2e"))  # Ciemnoszare tło
+        painter.setBrush(QColor(styles.HOVER_BG))  # Theme-aware tło
         painter.drawPath(path_bg)
         
         # Subtelne obramowanie
@@ -149,7 +150,7 @@ class GaugeWidget(QWidget):
         painter.drawText(int(center.x() - rect_s.width() / 2) + 2, 
                         int(center.y() - 10) + 2, score_str)
         
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor(styles.TEXT_PRIMARY))
         painter.drawText(int(center.x() - rect_s.width() / 2), 
                         int(center.y() - 10), score_str)
         
@@ -189,7 +190,7 @@ class GaugeWidget(QWidget):
         font_pct = QFont("Segoe UI", 10)
         font_pct.setBold(True)
         painter.setFont(font_pct)
-        painter.setPen(QColor("#98989d"))
+        painter.setPen(QColor(styles.TEXT_SECONDARY))
         
         l_str = "0%"
         l_rect = painter.fontMetrics().boundingRect(l_str)
