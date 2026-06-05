@@ -20,7 +20,6 @@ _FONT_SIZE_MAX = 22
 
 
 class SettingsService:
-    """Singleton-like settings service that persists to a JSON file."""
 
     _instance = None
 
@@ -37,33 +36,25 @@ class SettingsService:
         self._settings: dict = dict(_DEFAULTS)
         self.load()
 
-    # ------------------------------------------------------------------
-    # Public helpers
-    # ------------------------------------------------------------------
-
     def get(self, key: str):
-        """Return the value for *key*, or its default if unknown."""
+        """Zwróć wartość dla *key* albo wartość domyślną, jeśli klucz jest nieznany"""
         return self._settings.get(key, _DEFAULTS.get(key))
 
     def set(self, key: str, value) -> None:
-        """Set *key* to *value* (with validation) and persist to disk."""
+        """Ustaw *key* na *value* (z walidacją) i zapisz na dysku"""
         value = self._validate(key, value)
         self._settings[key] = value
         self.save()
 
-    # ------------------------------------------------------------------
-    # Persistence
-    # ------------------------------------------------------------------
-
     def save(self) -> None:
-        """Write current settings to the JSON file."""
+        """Zapisz bieżące ustawienia do pliku JSON"""
         config_dir = os.path.dirname(_SETTINGS_FILE)
         os.makedirs(config_dir, exist_ok=True)
         with open(_SETTINGS_FILE, 'w', encoding='utf-8') as fh:
             json.dump(self._settings, fh, indent=4)
 
     def load(self) -> None:
-        """Read settings from the JSON file, creating defaults if missing."""
+        """Odczytaj ustawienia z pliku JSON, tworząc domyślne, jeśli plik nie istnieje"""
         if os.path.isfile(_SETTINGS_FILE):
             try:
                 with open(_SETTINGS_FILE, 'r', encoding='utf-8') as fh:
@@ -80,9 +71,7 @@ class SettingsService:
             self._settings = dict(_DEFAULTS)
             self.save()
 
-    # ------------------------------------------------------------------
-    # Properties
-    # ------------------------------------------------------------------
+    # --- Właściwości ---
 
     @property
     def auto_lock_minutes(self) -> int:
@@ -116,13 +105,11 @@ class SettingsService:
     def font_size(self, value: int) -> None:
         self.set('font_size', value)
 
-    # ------------------------------------------------------------------
-    # Validation
-    # ------------------------------------------------------------------
+    # --- Walidacja ---
 
     @staticmethod
     def _validate(key: str, value):
-        """Return a validated value or raise ``ValueError``."""
+        """Zwraca zwalidowane wartości albo zgłosi ``ValueError``."""
         if key == 'auto_lock_minutes':
             value = int(value)
             if value not in _VALID_AUTO_LOCK:

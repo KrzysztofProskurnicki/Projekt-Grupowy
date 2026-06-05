@@ -1,4 +1,4 @@
-"""Settings View - User preferences for the application."""
+"""Widok ustawień - preferencje użytkownika aplikacji"""
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -9,7 +9,6 @@ import styles
 
 
 class SettingsView(QWidget):
-    """Settings configuration view."""
 
     settings_changed = pyqtSignal(str, object)
     theme_changed = pyqtSignal(str)
@@ -21,9 +20,7 @@ class SettingsView(QWidget):
         self._btn_groups = {}
         self._build_ui()
 
-    # -------------------------------------------------------------- refresh --
     def refresh_theme(self):
-        """Rebuild UI with current theme colors."""
         old_layout = self.layout()
         if old_layout:
             QWidget().setLayout(old_layout)

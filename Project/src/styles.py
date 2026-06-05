@@ -1,11 +1,6 @@
-"""Style constants and shared stylesheets.
+"""Stałe zmienne stylów i współdzielone arkusze stylów"""
 
-Colours are module-level *variables* so that ``apply_theme()`` can swap
-the entire palette at runtime.  Every view should re-read these after a
-theme change (call its ``refresh_theme()``).
-"""
-
-# ===== THEME PALETTES =====
+# ===== PALETY MOTYW?W =====
 _THEMES = {
     "dark": {
         "DARK_BG":       "#1c1c1e",
@@ -27,7 +22,7 @@ _THEMES = {
     },
 }
 
-# ===== Current palette (module-level, mutable) =====
+# ===== Bieżąca paleta =====
 DARK_BG       = _THEMES["dark"]["DARK_BG"]
 CARD_BG       = _THEMES["dark"]["CARD_BG"]
 HOVER_BG      = _THEMES["dark"]["HOVER_BG"]
@@ -36,7 +31,7 @@ TEXT_PRIMARY   = _THEMES["dark"]["TEXT_PRIMARY"]
 TEXT_SECONDARY = _THEMES["dark"]["TEXT_SECONDARY"]
 INPUT_BG       = _THEMES["dark"]["INPUT_BG"]
 
-# Accent colors (same for both themes)
+# Kolory akcentu
 COLOR_BLUE   = "#0a84ff"
 COLOR_RED    = "#ff453a"
 COLOR_GREEN  = "#30d158"
@@ -44,7 +39,7 @@ COLOR_YELLOW = "#ffd60a"
 COLOR_ORANGE = "#ff9f0a"
 COLOR_PURPLE = "#bf5af2"
 
-# ===== FONTS =====
+# ===== FONTY =====
 FONT_SIZE_SMALL  = "12px"
 FONT_SIZE_NORMAL = "14px"
 FONT_SIZE_MEDIUM = "16px"
@@ -52,14 +47,14 @@ FONT_SIZE_LARGE  = "20px"
 FONT_SIZE_XLARGE = "24px"
 FONT_SIZE_TITLE  = "32px"
 
-# ===== Derived helpers (re-computed on theme change) =====
+# ===== Pochodne pomocnicze (przeliczane po zmianie motywu) =====
 CARD_STYLE          = ""
 SECTION_TITLE_STYLE = ""
 PROGRESS_BAR_STYLE  = ""
 
 
 def _rebuild_derived():
-    """Rebuild derived style strings from current palette variables."""
+    """Przebuduj pochodne stringi stylów z bieżących zmiennych palety"""
     global CARD_STYLE, SECTION_TITLE_STYLE, PROGRESS_BAR_STYLE
     CARD_STYLE = f"background-color: {CARD_BG}; border-radius: 12px;"
     SECTION_TITLE_STYLE = (
@@ -73,17 +68,12 @@ def _rebuild_derived():
     )
 
 
-_rebuild_derived()  # initial build
+_rebuild_derived()
 
 
-# ------------------------------------------------------------------ public API
+# --- Publiczne API ---
 def apply_theme(name: str) -> None:
-    """Switch the active colour palette.
 
-    After calling this, every module that imported colours via
-    ``from styles import *`` still holds *stale* references.
-    Views must call their own ``refresh_theme()`` to re-read.
-    """
     global DARK_BG, CARD_BG, HOVER_BG, BORDER_COLOR
     global TEXT_PRIMARY, TEXT_SECONDARY, INPUT_BG
 
@@ -100,7 +90,7 @@ def apply_theme(name: str) -> None:
 
 
 def get_stylesheet(theme: str) -> str:
-    """Return the QApplication-level stylesheet for *theme*."""
+    """Zwróć arkusz stylów na poziomie QApplication dla danego *theme*."""
     p = _THEMES.get(theme, _THEMES["dark"])
     accent = "#007aff" if theme == "light" else "#0a84ff"
     return f"""

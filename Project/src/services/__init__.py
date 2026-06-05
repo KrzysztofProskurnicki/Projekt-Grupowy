@@ -1,4 +1,4 @@
-"""Services package - Business logic layer."""
+"""Pakiet serwis?w - warstwa logiki biznesowej."""
 
 from .data_manager import DataManager
 from .password_service import PasswordService

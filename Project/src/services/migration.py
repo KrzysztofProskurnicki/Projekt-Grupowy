@@ -1,11 +1,4 @@
-"""One-shot migration from legacy ``users.json`` to the encrypted SQLite vault.
-
-Triggered automatically on app startup. Idempotent: if the DB already has any
-users, or if ``users.json`` is absent/empty, this is a no-op. After a
-successful migration the source file is renamed to ``users.json.migrated.bak``
-so we never (a) re-run on the same data or (b) leave plaintext passwords
-lying around next to the encrypted database.
-"""
+"""Jednorazowa migracja ze starego ``users.json`` do szyfrowanego sejfu SQLite"""
 
 import hashlib
 import json
@@ -23,7 +16,7 @@ def _migrate_user(session, raw_user: Dict[str, Any]) -> None:
     if not username:
         return
     if vault_repository.find_user(session, username) is not None:
-        return  # already migrated in an earlier interrupted run
+        return
 
     salt = crypto_manager.generate_salt()
     key = crypto_manager.derive_key(password, salt)
@@ -32,9 +25,6 @@ def _migrate_user(session, raw_user: Dict[str, Any]) -> None:
         session, username=username, salt=salt, verifier=verifier
     )
 
-    # Temporarily unlock so we can encrypt this user's entries with their own
-    # key. We restore the previous lock state at the end so we don't leave the
-    # vault unlocked between accounts during migration.
     previous_key = crypto_manager.master_key
     crypto_manager.unlock(key)
     try:
@@ -76,7 +66,7 @@ def _migrate_entry(session, user_id: int, raw: Dict[str, Any]) -> None:
 
 
 def migrate_if_needed() -> bool:
-    """Run migration once. Returns True if data was migrated, else False."""
+    """Uruchom migrację. Zwraca True, jeśli dane zostały zmigrowane, inaczej False"""
     if not os.path.exists(USERS_FILE):
         return False
 
@@ -105,9 +95,7 @@ def migrate_if_needed() -> bool:
             os.remove(backup_path)
         os.rename(USERS_FILE, backup_path)
     except OSError:
-        # Migration data is already in DB; failing to rename the legacy file
-        # isn't fatal but means we'd re-attempt next launch. Since count_users
-        # > 0 will guard us, that's still safe.
+        # Dane migracji są już w bazie; nieudana zmiana nazwy starego pliku
         pass
 
     return True

@@ -1,21 +1,18 @@
-"""Security Service - Security analysis and scoring logic."""
+"""Serwis bezpieczeństwa - logika analizy i oceniania bezpieczeństwa"""
 
 from typing import List, Dict, Any
 import zxcvbn
 
 
 class SecurityService:
-    """Provides security analysis for passwords."""
+    """Udostępnia analize bezpieczeństwa haseł"""
     
     @staticmethod
     def calculate_security_score(passwords: List[Dict[str, Any]]) -> int:
-        """Calculate overall security score based on password strength.
-        
-        Args:
-            passwords: List of password dictionaries.
-            
-        Returns:
-            Security score from 0-100.
+        """Oblicza ogólny wynik bezpieczeństwa na podstawie siły haseł
+
+        Zwraca:
+            Wynik bezpieczeństwa od 0 do 100
         """
         total = len(passwords)
         if total == 0:
@@ -24,19 +21,19 @@ class SecurityService:
         weak = sum(1 for p in passwords if p.get('weak_password', False))
         strong = total - weak
         
-        # Score formula: base on strong ratio, penalize weak passwords
+        # Wzór wyniku: bazuje na udziale silnych haseł i słabych haseł
         score = int(max(0, min(100, (strong / total * 100) - (weak * 5))))
         return score
     
     @staticmethod
     def get_crack_time(password: str) -> str:
-        """Get estimated time to crack password using zxcvbn.
+        """Pobierz szacowany czas złamania hasła przy użyciu zxcvbn.
         
-        Args:
-            password: Password string to analyze.
+        Argumenty:
+            password: Hasło do analizy
             
-        Returns:
-            Human-readable crack time estimate.
+        Zwraca:
+            Czytelne dla człowieka oszacowanie czasu złamania
         """
         try:
             result = zxcvbn.zxcvbn(password)
@@ -46,13 +43,13 @@ class SecurityService:
     
     @staticmethod
     def analyze_password_strength(password: str) -> Dict[str, Any]:
-        """Analyze password strength using zxcvbn.
+        """Przeanalizuj siłę hasła przy użyciu zxcvbn.
         
-        Args:
-            password: Password string to analyze.
+        Argumenty:
+            password: Hasło do analizy
             
-        Returns:
-            Dictionary with analysis results (score, feedback, crack_time).
+        Zwraca:
+            Słownik z wynikami analizy (score, feedback, crack_time)
         """
         try:
             result = zxcvbn.zxcvbn(password)
@@ -70,13 +67,13 @@ class SecurityService:
     
     @staticmethod
     def get_security_stats(passwords: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Get comprehensive security statistics.
+        """Pobierz zbiorcze statystyki bezpieczeństwa.
         
-        Args:
-            passwords: List of password dictionaries.
+        Argumenty:
+            passwords: Lista słowników haseł
             
-        Returns:
-            Dictionary with total, weak, strong, and favorites counts.
+        Zwraca:
+            Słownik z licznikami total, weak, strong i favorites
         """
         total = len(passwords)
         weak = sum(1 for p in passwords if p.get('weak_password', False))

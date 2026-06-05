@@ -1,26 +1,26 @@
-"""User model - Data class representing application user profile."""
+"""Model użytkownika - klasa danych reprezentująca profil użytkownika aplikacji"""
 
 from dataclasses import dataclass
 
 
 @dataclass
 class User:
-    """Represents a user profile with credentials."""
+    """Reprezentuje profil użytkownika z danymi logowania"""
     
     user_name: str
     password: str
     authenticated: bool = False
     
     def authenticate(self) -> None:
-        """Mark user as authenticated."""
+        """Oznacz użytkownika jako uwierzytelnionego"""
         self.authenticated = True
     
     def logout(self) -> None:
-        """Mark user as logged out."""
+        """Oznacz użytkownika jako wylogowanego"""
         self.authenticated = False
     
     def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
+        """Konwertuj do słownika na potrzeby serializacji JSON"""
         return {
             'user_name': self.user_name,
             'password': self.password
@@ -28,7 +28,7 @@ class User:
     
     @classmethod
     def from_dict(cls, data: dict) -> 'User':
-        """Create User from dictionary (from JSON)."""
+        """Utwórz użytkownika (z JSON)."""
         return cls(
             user_name=data.get('user_name', ''),
             password=data.get('password', '')

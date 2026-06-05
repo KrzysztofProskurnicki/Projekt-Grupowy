@@ -1,8 +1,4 @@
-"""Vault repository - SQLite + SQLAlchemy persistence layer.
-
-Knows nothing about encryption. Higher-level services (AuthenticationService,
-PasswordService) handle key derivation / AES-GCM and pass us blobs.
-"""
+"""Repozytorium sejfu - warstwa trwałego zapisu SQLite + SQLAlchemy"""
 
 from contextlib import contextmanager
 from typing import Iterator, List, Optional
@@ -19,13 +15,12 @@ _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False, future=True)
 
 
 def init_db() -> None:
-    """Create tables if they don't exist."""
+    """Utwórz tabele, jeśli jeszcze nie istnieję"""
     Base.metadata.create_all(_engine)
 
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
-    """Provide a transactional scope around a series of operations."""
     session = _SessionLocal()
     try:
         yield session
@@ -37,7 +32,7 @@ def session_scope() -> Iterator[Session]:
         session.close()
 
 
-# --- user queries ---
+# --- Zapytania użytkowników ---
 
 def find_user(session: Session, username: str) -> Optional[User]:
     return session.execute(
@@ -48,7 +43,7 @@ def find_user(session: Session, username: str) -> Optional[User]:
 def create_user(session: Session, username: str, salt: bytes, verifier: bytes) -> User:
     user = User(username=username, salt=salt, verifier=verifier)
     session.add(user)
-    session.flush()  # populate user.id
+    session.flush()
     return user
 
 
@@ -56,7 +51,7 @@ def count_users(session: Session) -> int:
     return session.execute(select(func.count(User.id))).scalar_one()
 
 
-# --- entry queries ---
+# --- Zapytania wpisów ---
 
 def list_entries(session: Session, user_id: int) -> List[PasswordEntry]:
     return list(session.execute(
@@ -130,7 +125,7 @@ def count_weak(session: Session, user_id: int) -> int:
     ).scalar_one()
 
 
-# --- user mutations ---
+# --- modyfikacje użytkowników ---
 
 def get_user_by_id(session: Session, user_id: int) -> Optional[User]:
     return session.get(User, user_id)
@@ -139,7 +134,7 @@ def get_user_by_id(session: Session, user_id: int) -> Optional[User]:
 def update_user_credentials(
     session: Session, user_id: int, new_salt: bytes, new_verifier: bytes
 ) -> None:
-    """Update user salt and verifier after a master password change."""
+    """Zaktualizuj salt i verifier użytkownika po zmianie hasła głównego"""
     user = session.get(User, user_id)
     if user is not None:
         user.salt = new_salt
@@ -147,7 +142,7 @@ def update_user_credentials(
 
 
 def delete_user(session: Session, user_id: int) -> bool:
-    """Delete a user and all their entries (cascade). Returns True on success."""
+    """Usuń użytkownika i wszystkie jego wpisy (kaskadowo). Zwraca True po sukcesie."""
     user = session.get(User, user_id)
     if user is None:
         return False
@@ -162,7 +157,7 @@ def update_entry_encrypted_fields(
     enc_password: Optional[bytes],
     enc_notes: Optional[bytes],
 ) -> None:
-    """Update the encrypted blobs of a single entry (used during re-encryption)."""
+    """Zaktualizuj szyfrowane pola pojedynczego wpisu"""
     entry = session.get(PasswordEntry, entry_id)
     if entry is not None:
         entry.enc_email = enc_email

@@ -1,20 +1,19 @@
-"""Navigation Button Widget for Sidebar."""
+"""Widget przycisku nawigacji dla sidebara."""
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLabel, QSizePolicy
-from PyQt5.QtCore import Qt
 
 
 class NavButtonWidget(QWidget):
-    """Custom navigation button with badge and icon."""
+    """Niestandardowy przycisk nawigacji z badges i ikon"""
     
     def __init__(self, text: str, icon_char: str, count: int, is_active: bool = False):
-        """Initialize navigation button.
+        """Inicjalizuj przycisk nawigacji.
         
-        Args:
-            text: Button label text.
-            icon_char: Icon character (emoji).
-            count: Badge count to display.
-            is_active: Whether button is currently active.
+        Argumenty:
+            text: Tekst etykiety przycisku.
+            icon_char: Znak ikony (emoji).
+            count: Licznik odznaki do wyświetlenia.
+            is_active: Czy przycisk jest aktualnie aktywny.
         """
         super().__init__()
         layout = QHBoxLayout()

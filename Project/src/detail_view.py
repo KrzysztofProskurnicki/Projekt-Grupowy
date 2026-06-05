@@ -1,39 +1,35 @@
-"""Detail View - Displays detailed information about a password entry."""
+"""Widok szczegółowy - wyświetla szczegółowe informacje o wpisie hasła"""
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QFrame, QLineEdit, QSizePolicy, QTextEdit,
-                             QGraphicsOpacityEffect)
-from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimationGroup
-from PyQt5.QtGui import QFont, QGuiApplication
+                             QPushButton, QFrame, QTextEdit)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import  QGuiApplication
 from widgets.notification_popup import NotificationPopup
 from widgets.master_password_overlay import MasterPasswordOverlay
 from services.authentication_service import AuthenticationService
-from styles import TEXT_PRIMARY
 import styles
 from constants import MSG_COPIED
 
 
 
 class DetailView(QWidget):
-    """Detail view for displaying and editing password information."""
 
     def __init__(self, switch_back_callback, favorite_callback=None):
-        """Initialize detail view.
+        """Inicjalizuj widok szczegółów
 
-        Args:
-            switch_back_callback: Callback to return to previous view.
-            favorite_callback: Callback to toggle favorite status.
+        Argumenty:
+            switch_back_callback: Funkcja powrotu do poprzedniego widoku
+            favorite_callback: Funkcja przełączająca status ulubionego wpisu
         """
         super().__init__()
         self.switch_back_callback = switch_back_callback
         self.favorite_callback = favorite_callback
         self.current_name = ""
 
-        # State variables
+        # Zmienne stanu
         self.is_favorite = True
         self.password_visible = False
         self.auth_service = AuthenticationService()
-        # Populated from the entry dict by update_data().
         self.actual_password = ""
 
         # Główny layout
@@ -43,11 +39,10 @@ class DetailView(QWidget):
 
         self._build_ui()
 
-    # ------------------------------------------------------------------ UI build
+    # --- Budowanie UI ---
     def _build_ui(self):
-        """Build all UI widgets using current styles.* colours."""
 
-        # --- TOP LAYER: Nawigacja (Back button) ---
+        # --- GÓRNA WARSTWA: nawigacja (przycisk powrotu) ---
         top_bar = QHBoxLayout()
         self.back_btn = QPushButton("< All Passwords")
         self.back_btn.setCursor(Qt.PointingHandCursor)
@@ -103,7 +98,7 @@ class DetailView(QWidget):
         title_box.addWidget(self.title_label)
         title_box.addWidget(self.link_label)
 
-        # Gwiazdka (Ulubione)
+        # Gwiazdka (ulubione)
         self.star_btn = QPushButton("★")
         self.star_btn.setFixedSize(40, 40)
         self.star_btn.setCursor(Qt.PointingHandCursor)
@@ -117,8 +112,8 @@ class DetailView(QWidget):
 
         self.main_layout.addLayout(header_layout)
 
-        # --- FIELDS LAYER ---
-        # Pola: Username, Password, Website, Notes
+        # --- WARSTWA PÓL ---
+        # Pola: nazwa użytkownika, hasło, strona, notatki
         self.create_field("USERNAME", "john.doe@email.com", is_copyable=True)
         self.create_field("PASSWORD", "•••••••••••••", is_copyable=True, is_password=True)
         self.create_field("WEBSITE", "https://github.com", is_copyable=True)
@@ -126,9 +121,8 @@ class DetailView(QWidget):
 
         self.main_layout.addStretch()
 
-    # ------------------------------------------------------------------ theming
+    # --- Motyw ---
     def _clear_layout(self, layout):
-        """Recursively remove all items from a layout."""
         while layout.count():
             item = layout.takeAt(0)
             w = item.widget()
@@ -138,18 +132,18 @@ class DetailView(QWidget):
                 self._clear_layout(item.layout())
 
     def refresh_theme(self):
-        """Destroy all child widgets and rebuild the UI with current theme colours.
+        """Usówa wszystkie widgety potomne i przebuduj UI z bieżącymi kolorami motywu
 
-        Preserves stateful fields: current_name, is_favorite, actual_password,
+        Zachowuje pola stanu: current_name, is_favorite, actual_password,
         password_visible.
         """
-        # Save state
+        # Zapisz stan
         saved_name = self.current_name
         saved_favorite = self.is_favorite
         saved_password = self.actual_password
         saved_visible = self.password_visible
 
-        # Clear layout
+        # Wyczytaj układ
         while self.main_layout.count():
             item = self.main_layout.takeAt(0)
             w = item.widget()
@@ -158,17 +152,16 @@ class DetailView(QWidget):
             elif item.layout():
                 self._clear_layout(item.layout())
 
-        # Rebuild
         self._build_ui()
 
-        # Restore state
+        # Przywróć stan
         self.current_name = saved_name
         self.is_favorite = saved_favorite
         self.actual_password = saved_password
         self.password_visible = saved_visible
         self.update_star_style()
 
-    # ------------------------------------------------------------------ fields
+    # --- Pola ---
     def create_field(self, label_text, value_text, is_copyable=False, is_password=False, is_multiline=False):
         container = QFrame()
         container.setStyleSheet(f"""
@@ -179,17 +172,17 @@ class DetailView(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(8)
 
-        # Label
+        # Etykieta
         lbl = QLabel(label_text)
         lbl.setStyleSheet(
             f"color: {styles.TEXT_SECONDARY}; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;"
         )
         layout.addWidget(lbl)
 
-        # Value Row
+        # Wiersz wartości
         row = QHBoxLayout()
 
-        # Use QTextEdit for multiline fields (Notes), QLabel for others
+        # Używa QTextEdit dla pól wielowierszowych (notatki), a QLabel dla pozostałych
         if is_multiline:
             value_widget = QTextEdit()
             value_widget.setPlainText(value_text)
@@ -218,7 +211,7 @@ class DetailView(QWidget):
         row.addWidget(value_widget)
         row.addStretch()
 
-        # Akcje (Copy, Eye)
+        # Akcje (kopiowanie, podgląd)
         if is_password:
             self.eye_btn = QPushButton("👁")
             self.eye_btn.setFixedSize(30, 30)
@@ -229,7 +222,7 @@ class DetailView(QWidget):
             self.eye_btn.clicked.connect(self.toggle_password_visibility)
             row.addWidget(self.eye_btn)
 
-            # Copy password button
+            # Przycisk kopiowania hasła
             copy_pwd_btn = QPushButton("❐")
             copy_pwd_btn.setFixedSize(30, 30)
             copy_pwd_btn.setCursor(Qt.PointingHandCursor)
@@ -254,11 +247,6 @@ class DetailView(QWidget):
 
 
     def request_master_password(self, on_success):
-        """Show embedded master password overlay if not authenticated.
-
-        Args:
-            on_success: Callback function to execute on successful authentication.
-        """
         if self.auth_service.is_authenticated():
             on_success()
             return
@@ -271,7 +259,7 @@ class DetailView(QWidget):
         overlay.show()
 
     def toggle_password_visibility_with_auth(self):
-        """Toggle password visibility with master password verification."""
+        """Przełącz widoczne hasła po weryfikacją hasła głównego (master password)"""
         if not self.password_visible:
             self.request_master_password(self._show_password)
         else:
@@ -287,45 +275,35 @@ class DetailView(QWidget):
 
 
     def copy_password_with_auth(self):
-        """Copy password to clipboard with master password verification."""
         self.request_master_password(self._copy_password_action)
 
     def _copy_password_action(self):
-        """Copy password action after authentication."""
         QGuiApplication.clipboard().setText(self.actual_password)
         self.show_notification(MSG_COPIED)
 
     def copy_with_notification(self, text, field_name):
-        """Copy text and show notification.
+        """Skopiuj tekst i pokaż powiadomienie
 
-        Args:
-            text: Text to copy to clipboard.
-            field_name: Name of field being copied.
+        Argumenty:
+            text: Tekst do skopiowania do schowka
+            field_name: Nazwa kopiowanego pola
         """
         QGuiApplication.clipboard().setText(text)
         self.show_notification(MSG_COPIED)
 
     def show_notification(self, message):
-        """Show a temporary notification message using a custom popup.
-
-        Args:
-            message: Message to display.
-        """
         popup = NotificationPopup(message, self)
         popup.show()
 
 
     def toggle_favorite(self):
-        """Toggle the favorite state and update star appearance."""
         self.is_favorite = not self.is_favorite
         self.update_star_style()
 
-        # Call callback to save to file
         if self.favorite_callback and self.current_name:
             self.favorite_callback(self.current_name, self.is_favorite)
 
     def update_star_style(self):
-        """Update star button appearance based on favorite state."""
         if self.is_favorite:
             self.star_btn.setText("★")
             self.star_btn.setStyleSheet(f"""
@@ -354,7 +332,6 @@ class DetailView(QWidget):
             """)
 
     def toggle_password_visibility(self):
-        """Toggle password visibility between hidden and shown."""
         self.password_visible = not self.password_visible
         if self.password_visible:
             self.password_lbl.setText(self.actual_password)
@@ -365,12 +342,6 @@ class DetailView(QWidget):
 
 
     def update_data(self, entry: dict):
-        """Update detail view with data from a decrypted password entry.
-
-        Args:
-            entry: Dict with keys name, email, password, notes, color,
-                favorite (the shape returned by PasswordService).
-        """
         name = entry.get("name", "")
         email = entry.get("email", "")
         color = entry.get("color", styles.CARD_BG)
@@ -394,14 +365,12 @@ class DetailView(QWidget):
             font-weight: bold;
         """)
 
-        # `name` doubles as the website/identifier in our data model
-        # (AddPasswordView's "Website" field is stored as `name`).
         self.link_label.setText(name)
         self.username_lbl.setText(email)
         self.website_lbl.setText(name)
         self.notes_edit.setPlainText(notes)
 
-        # Mask the password until the user re-authenticates.
+        # Ukryj hasło do czasu ponownego uwierzytelnienia użytkownika.
         self.password_visible = False
         self.password_lbl.setText("•••••••••••••" if password else "")
         self.eye_btn.setText("👁")

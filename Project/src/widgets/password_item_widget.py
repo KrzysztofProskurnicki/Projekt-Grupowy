@@ -1,4 +1,4 @@
-"""Password Item Widget - Single card item for password list."""
+"""Widget elementu hasła - pojedyncza karta na liście haseł"""
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSizePolicy
 from PyQt5.QtCore import Qt
@@ -6,26 +6,25 @@ from styles import CARD_BG, TEXT_PRIMARY, TEXT_SECONDARY
 
 
 class PasswordItemWidget(QWidget):
-    """Widget representing a single password card in the list."""
     
     def __init__(self, title: str, subtitle: str, color: str, letter: str, favorite: bool = False):
-        """Initialize password item widget.
+        """Inicjalizuj widget elementu hasła
         
-        Args:
-            title: Password name/title.
-            subtitle: Password email/subtitle.
-            color: Icon background color.
-            letter: Icon letter.
-            favorite: Whether password is marked as favorite.
+        Argumenty:
+            title: Nazwa/tytuł hasła.
+            subtitle: Email/podtytuł hasła.
+            color: Kolor tła ikony.
+            letter: Litera ikony.
+            favorite: Czy has?o jest oznaczone jako ulubione.
         """
         super().__init__()
         
-        # Container Widget (Transparent, holds margins)
+        # Widget kontenera (przezroczysty, trzyma marginesy)
         container_layout = QVBoxLayout(self)
         container_layout.setContentsMargins(0, 5, 0, 5)
         container_layout.setSpacing(0)
         
-        # Card Frame (Visible, holds content)
+        # Ramka karty
         card_frame = QFrame()
         card_frame.setMinimumHeight(80)
         card_frame.setObjectName("cardFrame")
@@ -39,12 +38,12 @@ class PasswordItemWidget(QWidget):
             }}
         """)
         
-        # Content Layout inside Card
+        # Układ treści wewnątrz karty
         hbox = QHBoxLayout(card_frame)
         hbox.setContentsMargins(15, 10, 15, 10)
         hbox.setSpacing(15)
         
-        # Icon Circle
+        # Okrąg ikony
         icon_lbl = QLabel(letter)
         icon_lbl.setFixedSize(48, 48)
         icon_lbl.setAlignment(Qt.AlignCenter)
@@ -58,7 +57,7 @@ class PasswordItemWidget(QWidget):
         """)
         hbox.addWidget(icon_lbl)
         
-        # Text Content
+        # Treść tekstowa
         text_container = QWidget()
         vbox = QVBoxLayout(text_container)
         vbox.setContentsMargins(0, 0, 0, 0)
@@ -83,7 +82,7 @@ class PasswordItemWidget(QWidget):
         hbox.addWidget(text_container)
         hbox.addStretch()
         
-        # Favorite Icon
+        # Ikona ulubionego wpisu
         if favorite:
             fav_lbl = QLabel("⭐")
             fav_lbl.setStyleSheet("font-size: 16px; background: transparent; border: none;")
@@ -97,5 +96,5 @@ class PasswordItemWidget(QWidget):
         )
         hbox.addWidget(chevron)
         
-        # Add Card to Container
+        # Dodaj kartę do kontenera
         container_layout.addWidget(card_frame)

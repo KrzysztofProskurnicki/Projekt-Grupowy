@@ -1,6 +1,5 @@
-"""Master Password Overlay Widget - Authentication dialog."""
+"""Widget nakładki hasła głównego - okno uwierzytelniania"""
 
-import json
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation
 from services.authentication_service import AuthenticationService
@@ -8,30 +7,27 @@ from styles import TEXT_PRIMARY
 
 
 class MasterPasswordOverlay(QWidget):
-    """Embedded overlay for Master Password verification."""
     
     def __init__(self, parent, on_success_callback, auth_service: AuthenticationService):
-        """Initialize master password overlay.
+        """Inicjalizuj nakładki hasła głównego
         
-        Args:
-            parent: Parent widget to overlay on.
-            on_success_callback: Function to call on successful authentication.
-            auth_service: Authentication service instance.
+        Argumenty:
+            parent: Widget nadrzędny
+            on_success_callback: Funkcja wywoływana po pomyślnym uwierzytelnieniu
+            auth_service: Instancja serwisu uwierzytelniania
         """
         super().__init__(parent)
         self.on_success = on_success_callback
         self.auth_service = auth_service
-        self.resize(parent.size())  # Cover entire parent
-        
-        # No window layout, just simple overlay behavior
+        self.resize(parent.size())
+
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 180);")  # Dimmed darker background
-        
-        # Main layout for centering
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 180);")
+
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignCenter)
         
-        # Container
+        # Kontener
         container = QFrame()
         container.setFixedSize(320, 180)
         container.setStyleSheet(f"""
@@ -80,19 +76,19 @@ class MasterPasswordOverlay(QWidget):
         container_layout.setContentsMargins(24, 24, 24, 24)
         container_layout.setSpacing(16)
         
-        # Title
+        # Tytuł
         title_lbl = QLabel("Enter Master Password")
         title_lbl.setAlignment(Qt.AlignCenter)
         container_layout.addWidget(title_lbl)
         
-        # Input
+        # Pole wejściowe
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setPlaceholderText("Password")
         self.password_input.returnPressed.connect(self.verify_password)
         container_layout.addWidget(self.password_input)
         
-        # Buttons
+        # Przyciski
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
         
@@ -114,14 +110,14 @@ class MasterPasswordOverlay(QWidget):
         self.password_input.setFocus()
     
     def verify_password(self):
-        """Verify entered password against master password."""
+        """Zweryfikuj wpisane hasło względem hasła głównego"""
         entered_pwd = self.password_input.text()
         
         if self.auth_service.verify_master_password(entered_pwd):
             self.on_success()
             self.close()
         else:
-            # Flash red border for error
+            # Mignij czerwonym obramowaniem przy błędzie
             self.password_input.setStyleSheet("""
                 QLineEdit {
                     background-color: #2c2c2e;
@@ -147,7 +143,6 @@ class MasterPasswordOverlay(QWidget):
             """))
 
     def showEvent(self, event):
-        """Handle show event - resize to cover parent."""
         if self.parent():
             self.resize(self.parent().size())
         super().showEvent(event)

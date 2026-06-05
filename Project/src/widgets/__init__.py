@@ -1,4 +1,4 @@
-"""Widgets package - Reusable UI components."""
+"""Pakiet widget?w - komponenty UI wielokrotnego u?ytku."""
 
 from .password_item_widget import PasswordItemWidget
 from .notification_popup import NotificationPopup

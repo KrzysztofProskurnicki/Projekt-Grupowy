@@ -3,7 +3,6 @@
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, QPointF, pyqtProperty, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor, QPainter, QPen, QBrush, QLinearGradient, QFont, QPainterPath
-import math
 import styles
 
 
@@ -14,28 +13,28 @@ class GaugeWidget(QWidget):
         super().__init__(parent)
         self.setMinimumSize(360, 260)  # Minimalny rozmiar widgetu
         self._score = 0  # Docelowy wynik (0-100)
-        self._animated_score = 0  # Aktualny animowany wynik
+        self._animated_score = 0
     
     @pyqtProperty(int)
     def score(self):
-        """Property dla animacji - zwraca aktualny wynik."""
+
         return self._animated_score
         
     @score.setter
     def score(self, value):
-        """Setter dla property - aktualizuje wynik i odświeża widget."""
+        """Setter dla property - aktualizuje wynik i odświeża widget"""
         self._animated_score = value
-        self.update()  # Wywołaj przerysowanie
+        self.update()
         
     def set_score(self, value: int):
-        """Ustaw wynik i animuj do nowej wartości."""
+        """Ustawia wynik i animuje do nowej wartości."""
         self._score = max(0, min(100, value))  # Ogranicz do 0-100
-        self.anim = QPropertyAnimation(self, b"score")  # Animacja property 'score'
+        self.anim = QPropertyAnimation(self, b"score")
         self.anim.setDuration(1500)  # 1.5 sekundy
-        self.anim.setStartValue(self._animated_score)  # Od aktualnej wartości
-        self.anim.setEndValue(self._score)  # Do nowej wartości
-        self.anim.setEasingCurve(QEasingCurve.OutBack)  # Efekt przewyższenia
-        self.anim.start()  # Uruchom animację
+        self.anim.setStartValue(self._animated_score)
+        self.anim.setEndValue(self._score)
+        self.anim.setEasingCurve(QEasingCurve.OutBack)
+        self.anim.start()
 
     def paintEvent(self, event):
         """Rysuj wskaźnik gauge."""
@@ -55,7 +54,7 @@ class GaugeWidget(QWidget):
         # Zewnętrzny łuk (180° do 0°)
         path_bg.arcMoveTo(center.x() - radius, center.y() - radius, radius * 2, radius * 2, 180)
         path_bg.arcTo(center.x() - radius, center.y() - radius, radius * 2, radius * 2, 180, -180)
-        # Wewnętrzny łuk (odwrotnie)
+        # Wewnętrzny łuk
         path_bg.arcTo(center.x() - inner_radius, center.y() - inner_radius, 
                      inner_radius * 2, inner_radius * 2, 0, 180)
         path_bg.closeSubpath()
@@ -68,7 +67,7 @@ class GaugeWidget(QWidget):
         pen_outline = QPen(QColor(255, 255, 255, 77), 1)
         painter.strokePath(path_bg, pen_outline)
         
-        # --- 2. Colored Arc ---
+        # --- 2. Kolorowy łuk ---
         angle_span = (self._animated_score / 100) * 180
         
         if angle_span > 0:
@@ -79,7 +78,7 @@ class GaugeWidget(QWidget):
                           inner_radius * 2, inner_radius * 2, 180 - angle_span, angle_span)
             path_val.closeSubpath()
             
-            # Gradient Fill
+            # Wype?nienie gradientem
             gradient = QLinearGradient(center.x() - radius, center.y(), center.x() + radius, center.y())
             gradient.setColorAt(0.0, QColor("#ff453a")) 
             gradient.setColorAt(0.5, QColor("#ffd60a")) 
@@ -88,8 +87,8 @@ class GaugeWidget(QWidget):
             painter.setPen(Qt.NoPen)
             painter.setBrush(QBrush(gradient))
             painter.drawPath(path_val)
-            
-            # Outer Glow
+
+            # Zewnętrzna poświata
             if self._animated_score >= 80: 
                 glow_c = QColor("#30d158")
             elif self._animated_score >= 50: 
@@ -111,7 +110,7 @@ class GaugeWidget(QWidget):
             path_outer_glow.closeSubpath()
             painter.drawPath(path_outer_glow)
 
-        # --- 3. Needle ---
+        # --- 3. Wskazówka ---
         painter.save()
         painter.translate(center)
         rotation = 180 + angle_span
@@ -134,7 +133,7 @@ class GaugeWidget(QWidget):
         painter.drawPath(path_needle)
         painter.restore()
 
-        # --- 4. Score Text ---
+        # --- 4. Tekst wyniku ---
         font_score = QFont("Segoe UI", 32)
         font_score.setBold(False)
         painter.setFont(font_score)
@@ -154,7 +153,7 @@ class GaugeWidget(QWidget):
         painter.drawText(int(center.x() - rect_s.width() / 2), 
                         int(center.y() - 10), score_str)
         
-        # --- 5. Status Label ---
+        # --- 5. Etykieta statusu ---
         s = self._animated_score
         if s >= 90:    
             status, s_col = "EXCELLENT", "#30d158"
@@ -186,7 +185,7 @@ class GaugeWidget(QWidget):
         painter.setPen(c_status)
         painter.drawText(pos_x, pos_y, status)
 
-        # --- 6. Percentage Labels ---
+        # --- 6. Etykiety procentowe ---
         font_pct = QFont("Segoe UI", 10)
         font_pct.setBold(True)
         painter.setFont(font_pct)
@@ -208,7 +207,7 @@ class GaugeWidget(QWidget):
                         int(center.y() - radius + 60), m_str)
 
     def get_color_for_score(self, score):
-        """Get color based on score value."""
+        """Pobierz kolor na podstawie wartości wyniku"""
         if score < 40: 
             return QColor("#ff453a")
         if score < 75: 

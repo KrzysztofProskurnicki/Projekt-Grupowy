@@ -1,11 +1,7 @@
-"""Cryptographically secure password generator.
-
-Ported from baza v1/generator.py.
-"""
+"""Kryptograficznie bezpieczny generator haseł"""
 
 import secrets
 import string
-
 
 def generate_strong_password(
     length: int = 16,
@@ -13,11 +9,11 @@ def generate_strong_password(
     use_digits: bool = True,
     use_symbols: bool = True,
 ) -> str:
-    """Generate a strong random password.
+    """Wygeneruj silne losowe hasło.
 
-    Guarantees at least one character from every selected class, then fills the
-    remainder from the union of all selected classes and shuffles. Uses
-    :mod:`secrets` for CSPRNG randomness.
+    Gwarantuje co najmniej jeden znak z każdej wybranej klasy, następnie
+    wypełnia resztę znakami z sumy wszystkich wybranych klas i miesza wynik.
+    Używa :mod:`secrets` jako kryptograficznie bezpiecznego generatora losowego.
     """
     lowercase = string.ascii_lowercase
     uppercase = string.ascii_uppercase if use_upper else ""
@@ -37,7 +33,6 @@ def generate_strong_password(
         chars.append(secrets.choice(symbols))
 
     if length < len(chars):
-        # Ensure we don't produce a shorter password than the guarantees imply.
         chars = chars[:length]
     else:
         for _ in range(length - len(chars)):

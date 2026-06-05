@@ -1,17 +1,4 @@
-"""Authentication Service - user login/registration backed by SQLite + Argon2id.
-
-Public API is unchanged from the previous JSON-backed version so the UI layer
-(LoginDialog, RegisterDialog, DetailView, MasterPasswordOverlay) does not need
-to be touched. Internally:
-
-* user credentials -> Argon2id salt + SHA256(key) verifier in the ``users``
-  table (no plaintext password is ever stored);
-* on successful login the derived key is loaded into the shared
-  :data:`crypto_service.crypto_manager` and stays there until logout;
-* ``verify_master_password`` re-derives the current user's key and compares it
-  to the stored verifier (so the master-password overlay in the detail view
-  actually re-validates the logged-in user, not a hardcoded admin password).
-"""
+"""Serwis uwierzytelniania - logowanie i rejestracja przez SQLite + Argon2id"""
 
 import hashlib
 from typing import Optional
@@ -21,16 +8,13 @@ from services import vault_repository
 
 
 class _AuthState:
-    """Module-level session state shared by every AuthenticationService instance."""
+    """Stan sesji na poziomie modułu współdzielony przez wszystkie instancje AuthenticationService"""
     current_user_id: Optional[int] = None
     current_username: Optional[str] = None
 
 
 _state = _AuthState()
 
-
-# Ensure tables exist as soon as the service module is imported. This is
-# idempotent (CREATE TABLE IF NOT EXISTS) so it costs effectively nothing.
 vault_repository.init_db()
 
 
@@ -39,18 +23,14 @@ def _verifier_for(key: bytes) -> bytes:
 
 
 class AuthenticationService:
-    """Manages user authentication and per-view re-auth state."""
+    """Zarządza uwierzytelnianiem użytkownika i stanem ponownej autoryzacji widoku."""
 
     def __init__(self) -> None:
-        # Per-instance flag preserved for DetailView's "did we already
-        # re-prompt for the master password while viewing this entry" UX.
-        # Module-level vault unlock state is tracked separately via crypto_manager.
         self._view_unlocked: bool = False
 
-    # --- authentication ---
-
+    # --- uwierzytelnianie ---
     def authenticate(self, username: str, password: str) -> bool:
-        """Verify credentials and unlock the vault on success."""
+        """Zweryfikuj dane logowania i odblokuj sejf po sukcesie."""
         with vault_repository.session_scope() as session:
             user = vault_repository.find_user(session, username)
             if user is None:
@@ -70,7 +50,7 @@ class AuthenticationService:
             return True
 
     def register(self, username: str, password: str) -> bool:
-        """Create a new user. Returns False if the username is taken."""
+        """Utwórz nowego użytkownika. Zwraca False, jeśli nazwa jest zajęta"""
         with vault_repository.session_scope() as session:
             if vault_repository.find_user(session, username) is not None:
                 return False
@@ -84,11 +64,7 @@ class AuthenticationService:
             return True
 
     def verify_master_password(self, password: str) -> bool:
-        """Re-verify the currently logged-in user's password.
-
-        Used by :class:`MasterPasswordOverlay` to gate sensitive actions
-        (revealing/copying a stored password) inside the detail view.
-        """
+        """Ponownie zweryfikuj hasło aktualnie zalogowanego użytkownika"""
         if _state.current_user_id is None:
             return False
         with vault_repository.session_scope() as session:
@@ -102,21 +78,20 @@ class AuthenticationService:
             return _verifier_for(derived) == user.verifier
 
     def logout(self) -> None:
-        """Clear all session state and zero the master key in RAM."""
+        """Wyczyść cały stan sesji i usuń klucz główny z RAM"""
         crypto_manager.lock()
         _state.current_user_id = None
         _state.current_username = None
         self._view_unlocked = False
 
-    # --- per-view re-auth flag (used by DetailView) ---
-
+    # --- flaga ponownej autoryzacji widoku ---
     def is_authenticated(self) -> bool:
         return self._view_unlocked
 
     def set_authenticated(self, status: bool) -> None:
         self._view_unlocked = status
 
-    # --- read-only helpers ---
+    # --- pomocniki tylko do odczytu ---
 
     def get_current_user(self) -> Optional[str]:
         return _state.current_username
@@ -127,10 +102,10 @@ class AuthenticationService:
     def is_vault_unlocked(self) -> bool:
         return crypto_manager.is_unlocked() and _state.current_user_id is not None
 
-    # --- profile operations ---
+    # --- operacje profilu ---
 
     def get_user_created_at(self):
-        """Return the creation datetime of the current user, or None."""
+        """Zwróć date utworzenia bieżącego użytkownika albo None."""
         if _state.current_user_id is None:
             return None
         with vault_repository.session_scope() as session:
@@ -140,35 +115,35 @@ class AuthenticationService:
     def change_master_password(
         self, old_password: str, new_password: str, progress_callback=None
     ) -> bool:
-        """Change the master password: verify old, re-encrypt all entries, update credentials.
+        """Zmień hasło główne: zweryfikuj stare, przeszyfruj wpisy i zaktualizuj dane logowania.
 
-        Args:
-            old_password: Current master password for verification.
-            new_password: New master password to set.
-            progress_callback: Optional callable(int) receiving 0-100 progress %.
+        Argumenty:
+            old_password: Bieżące hasło główne używane do weryfikacji.
+            new_password: Nowe hasło główne do ustawienia.
+            progress_callback: Opcjonalna funkcja callable(int) przyjmująca postęp 0-100%.
 
-        Returns:
-            True on success, False if old_password is wrong.
+        Zwraca:
+            True po sukcesie, False jeśli old_password jest błędne.
         """
         if _state.current_user_id is None:
             return False
 
-        # 1. Verify old password
+        # 1. Zweryfikuj stare hasło
         if not self.verify_master_password(old_password):
             return False
 
-        # 2. Derive new key
+        # 2. Wyprowadź nowy klucz
         new_salt = crypto_manager.generate_salt()
         new_key = crypto_manager.derive_key(new_password, new_salt)
         new_verifier = _verifier_for(new_key)
 
-        # 3. Re-encrypt every entry: decrypt with old key, encrypt with new key
+        # 3. Przeszyfruj każdy wpis: odszyfruj starym kluczem, zaszyfruj nowym
         with vault_repository.session_scope() as session:
             entries = vault_repository.list_entries(session, _state.current_user_id)
             total = len(entries)
 
             for i, entry in enumerate(entries):
-                # Decrypt with current key
+                # Odszyfruj bieżącym kluczem
                 plain_email = ""
                 plain_password = ""
                 plain_notes = ""
@@ -182,7 +157,7 @@ class AuthenticationService:
                 except Exception:
                     pass
 
-                # Encrypt with new key
+                # Zaszyfruj nowym kluczem
                 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
                 import os
                 aesgcm = AESGCM(new_key)
@@ -204,12 +179,12 @@ class AuthenticationService:
                 if progress_callback and total > 0:
                     progress_callback(int((i + 1) / total * 100))
 
-            # 4. Update user credentials
+            # 4. Zaktualizuj dane logowania użytkownika
             vault_repository.update_user_credentials(
                 session, _state.current_user_id, new_salt, new_verifier
             )
 
-        # 5. Switch in-memory key to the new one
+        # 5. Nowy klucz w pamięci
         crypto_manager.unlock(new_key)
 
         if progress_callback:
@@ -218,7 +193,7 @@ class AuthenticationService:
         return True
 
     def delete_current_account(self) -> bool:
-        """Delete the currently logged-in user and all their vault data."""
+        """Usuń aktualnie zalogowanego użytkownika i wszystkie jego dane sejfu."""
         if _state.current_user_id is None:
             return False
         with vault_repository.session_scope() as session:

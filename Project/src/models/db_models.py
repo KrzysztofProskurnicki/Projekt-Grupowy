@@ -1,17 +1,4 @@
-"""SQLAlchemy ORM models for the encrypted vault.
-
-Schema overview:
-
-* ``User``           - one row per account. Stores Argon2id salt + a SHA256
-                       verifier of the derived key (we never store the key
-                       itself or the plaintext password).
-* ``PasswordEntry``  - one row per saved credential, owned by a user. Sensitive
-                       fields (email, password, notes) are AES-GCM ciphertext
-                       blobs in the format ``nonce(12B) || ciphertext``. Fields
-                       used by the UI for listing/filtering (name, color,
-                       favorite, weak_password) stay plaintext so we don't have
-                       to decrypt every entry just to render the sidebar.
-"""
+"""Modele ORM SQLAlchemy dla szyfrowanego sejfu"""
 
 from datetime import datetime
 from typing import List, Optional
@@ -45,14 +32,13 @@ class PasswordEntry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
-    # Plaintext (needed for listing / filtering / sidebar badges).
+    # Dane jawne (potrzebne do listowania, filtrowania i odznak sidebara).
     name: Mapped[str] = mapped_column(String, nullable=False)
     color: Mapped[str] = mapped_column(String, nullable=False, default="#333333")
     favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     weak_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    # Encrypted blobs: nonce(12B) || ciphertext. May be NULL for fields the
-    # user did not provide (e.g. notes).
+    # Szyfrowane bloby: nonce(12B) || ciphertext
     enc_email: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
     enc_password: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
     enc_notes: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)

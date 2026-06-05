@@ -1,27 +1,26 @@
-"""Security Dashboard View - Displays security statistics and analysis."""
+"""Widok panelu bezpieczeństwa - wyświetla statystyki i analizę bezpieczeństwa."""
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, 
                              QScrollArea, QTableWidget, QTableWidgetItem, 
-                             QHeaderView, QSizePolicy)
+                             QHeaderView)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtGui import QColor
 from widgets.gauge_widget import GaugeWidget
 from widgets.vault_status_bar import VaultStatusBar
 from services.security_service import SecurityService
-from styles import *
 import styles
 
 
 
 class SecurityView(QWidget):
-    """Security statistics dashboard."""
+    """Panel statystyk bezpieczeństwa."""
     
     def __init__(self, back_callback, detail_callback):
-        """Initialize security view.
+        """Inicjalizuj widok bezpieczeństwa.
         
-        Args:
-            back_callback: Callback to return to previous view.
-            detail_callback: Callback to navigate to detail view.
+        Argumenty:
+            back_callback: Funkcja powrotu do poprzedniego widoku.
+            detail_callback: Funkcja przejścia do widoku szczegółów.
         """
         super().__init__()
         self.back_callback = back_callback
@@ -37,7 +36,6 @@ class SecurityView(QWidget):
         return frame
     
     def init_ui(self):
-        # If rebuilding, detach old layout completely
         old = self.layout()
         if old is not None:
             QWidget().setLayout(old)
@@ -54,17 +52,15 @@ class SecurityView(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(30)
-        
-        # Header
+
         title = QLabel("🛡️ Security Dashboard")
         title.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 10px;")
         layout.addWidget(title)
-        
-        # --- Top Section: 2 Columns (Stats Left | Gauge Right) ---
+
         top_section = QHBoxLayout()
         top_section.setSpacing(30)
         
-        # 1. Left: Stats Grid (2x2)
+        # 1. Lewa strona: siatka statystyk (2x2)
         stats_container = QWidget()
         stats_layout = QVBoxLayout(stats_container)
         stats_layout.setContentsMargins(0, 0, 0, 0)
@@ -87,7 +83,7 @@ class SecurityView(QWidget):
         
         top_section.addWidget(stats_container, stretch=3)
         
-        # 2. Right: Gauge (Smaller, Centered)
+        # 2. Prawa strona: wskaźnik
         chart_frame = self.create_section_frame()
         chart_frame.setMaximumHeight(300)
         chart_layout = QVBoxLayout(chart_frame)
@@ -103,7 +99,7 @@ class SecurityView(QWidget):
         top_section.addWidget(chart_frame, stretch=2)
         layout.addLayout(top_section)
         
-        # --- Middle Section: Vault Bar (Full Width, Option C Style) ---
+        # --- Środkowa sekcja: pasek sejfu ---
         bar_frame = self.create_section_frame()
         bar_layout = QVBoxLayout(bar_frame)
         bar_layout.setContentsMargins(30, 25, 30, 30)
@@ -117,11 +113,11 @@ class SecurityView(QWidget):
         
         layout.addWidget(bar_frame)
         
-        # --- Bottom Section: Weak Passwords + Tips ---
+        # --- Dolna sekcja: słabe hasła + wskazówki ---
         bottom_row = QHBoxLayout()
         bottom_row.setSpacing(20)
         
-        # Weak list
+        # Lista słabych haseł
         weak_frame = self.create_section_frame()
         weak_layout = QVBoxLayout(weak_frame)
         weak_layout.setContentsMargins(20, 20, 20, 20)
@@ -140,7 +136,7 @@ class SecurityView(QWidget):
         
         bottom_row.addWidget(weak_frame)
         
-        # Tips
+        # Wskazówki
         tips_frame = self.create_section_frame()
         tips_layout = QVBoxLayout(tips_frame)
         tips_layout.setContentsMargins(20, 20, 20, 20)
@@ -157,7 +153,7 @@ class SecurityView(QWidget):
         bottom_row.addWidget(tips_frame)
         layout.addLayout(bottom_row)
         
-        # Table
+        # Tabela
         table_frame = self.create_section_frame()
         table_layout = QVBoxLayout(table_frame)
         table_layout.setContentsMargins(20, 20, 20, 20)
@@ -187,7 +183,6 @@ class SecurityView(QWidget):
         main_layout.addWidget(scroll)
 
     def refresh_theme(self):
-        """Clear and rebuild the entire UI to pick up new theme colours."""
         saved_data = list(self.passwords_data)
         self.init_ui()
         if saved_data:
@@ -218,11 +213,11 @@ class SecurityView(QWidget):
 
 
     def get_crack_time(self, password):
-        """Get crack time using security service."""
+        """Pobierz czas złamania hasła przez serwis bezpieczeństwa."""
         return self.security_service.get_crack_time(password)
 
     def calculate_security_score(self, strong, weak, total):
-        """Calculate security score - delegate to service (deprecated, use service directly)."""
+        """Oblicza wynik bezpieczeństwa"""
         if total == 0: 
             return 0
         return int(max(0, min(100, (strong/total * 100) - (weak * 5))))
@@ -230,10 +225,10 @@ class SecurityView(QWidget):
 
 
     def update_stats(self, passwords_data):
-        """Update all statistics and charts with password data."""
+        """Zaktualizuj wszystkie statystyki i wykresy danymi haseł"""
         self.passwords_data = passwords_data
         
-        # Get stats using security service
+        # Pobierz statystyki przez serwis bezpieczeństwa
         stats = self.security_service.get_security_stats(passwords_data)
         
         self.total_card.findChild(QLabel, "value").setText(str( stats['total']))
@@ -246,8 +241,7 @@ class SecurityView(QWidget):
         self.vault_bar.set_stats(stats['strong'], stats['weak'], stats['total'])
 
         
-        # Update weak list
-        # ... existing logic ...
+        # Zaktualizuj listę słabych haseł
         while self.weak_list_layout.count():
             w = self.weak_list_layout.takeAt(0).widget()
             if w: w.deleteLater()
@@ -266,7 +260,7 @@ class SecurityView(QWidget):
         else:
             self.weak_list_layout.addWidget(QLabel("Avalanche Secure! 🎉", styleSheet=f"color:{styles.COLOR_GREEN}; font-style:italic;"))
             
-        # Table
+        # Tabela
         total = stats['total']
         self.table.setRowCount(total)
         for i, p in enumerate(passwords_data):

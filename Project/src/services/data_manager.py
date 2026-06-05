@@ -8,7 +8,7 @@ from config import USERS_FILE, CONFIG_FILE
 class DataManager:
     """Zarządza odczytem/zapisem danych do plików JSON."""
     
-    # --- Config ---
+    # --- Konfiguracja ---
     
     @staticmethod
     def load_config() -> Dict[str, Any]:
@@ -31,11 +31,11 @@ class DataManager:
         config = DataManager.load_config()
         return config.get('master_password', 'admin')
     
-    # --- User profile management ---
+    # --- Zarządzanie profilami użytkowników ---
     
     @staticmethod
     def load_users() -> List[Dict[str, Any]]:
-        """Załaduj listę użytkowników z pliku JSON."""
+        """Załaduj listę użytkowników z pliku JSON"""
         try:
             with open(USERS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
@@ -44,7 +44,7 @@ class DataManager:
     
     @staticmethod
     def save_users(data: List[Dict[str, Any]]) -> None:
-        """Zapisz listę użytkowników do pliku JSON."""
+        """Zapisz listę użytkowników do pliku JSON"""
         with open(USERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     
@@ -66,7 +66,7 @@ class DataManager:
     
     @staticmethod
     def register_user(username: str, password: str) -> bool:
-        """Zarejestruj nowego użytkownika z pustą listą haseł.
+        """Zarejestruj nowego użytkownika z pustą listą haseł
         
         Args:
             username: Nazwa nowego użytkownika.
@@ -87,7 +87,7 @@ class DataManager:
         DataManager.save_users(users)
         return True
     
-    # --- Per-user password management ---
+    # --- Zarządzanie hasłami per user ---
     
     @staticmethod
     def load_user_passwords(username: str) -> List[Dict[str, Any]]:

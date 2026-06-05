@@ -1,4 +1,4 @@
-"""Notification Popup Widget - Toast notification with animation."""
+"""Widget powiadomienia popup"""
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimationGroup
@@ -6,25 +6,25 @@ from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimat
 
 
 class NotificationPopup(QWidget):
-    """Custom toast notification with animation (Embedded Overlay)."""
+    """Niestandardowe powiadomienie toast z animacją"""
     
     def __init__(self, message: str, parent=None):
-        """Initialize notification popup.
+        """Inicjalizuj popup powiadomienia.
         
-        Args:
-            message: Message to display.
-            parent: Parent widget (for positioning).
+        Argumenty:
+            message: Komunikat do wyświetlenia.
+            parent: Widget nadrzędny (do pozycjonowania).
         """
         super().__init__(parent)
-        # No Window flags -> Child widget
+        # Bez flag okna -> widget potomny
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         
-        # Layout
+        # Układ
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Frame
+        # Ramka
         self.frame = QFrame()
         self.frame.setStyleSheet("""
             QFrame {
@@ -40,7 +40,7 @@ class NotificationPopup(QWidget):
         frame_layout.setContentsMargins(0, 0, 0, 0)
         frame_layout.setSpacing(0)
         
-        # Text
+        # Tekst
         text_lbl = QLabel(message)
         text_lbl.setAlignment(Qt.AlignCenter)
         text_lbl.setStyleSheet(
@@ -51,34 +51,33 @@ class NotificationPopup(QWidget):
         
         layout.addWidget(self.frame)
         
-        # Position at top center of parent (Local Coordinates)
+        # Pozycja u góry na środku parent
         if parent:
-            # We are a child, so 0,0 is parent's top-left
             p_width = parent.width()
             my_width = self.sizeHint().width()
             x = (p_width - my_width) // 2
-            y = 20  # 20px from top
+            y = 20
             self.move(x, y)
-            self.raise_()  # Ensure top of siblings
+            self.raise_()
         
-        # Animation
+        # Animacja
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.close_animation)
-        self.timer.start(2000)  # Show for 2 seconds
+        self.timer.start(2000)  # Poka? przez 2 sekundy
         
-        # Entry animation (Slide down small bit + Fade in)
+        # Animacja wejścia (lekki zjazd w dół + pojawienie)
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
         
         self.group_enter = QParallelAnimationGroup(self)
         
-        # Opacity
+        # Przezroczystość
         anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity")
         anim_fade.setDuration(200)
         anim_fade.setStartValue(0)
         anim_fade.setEndValue(1)
         
-        # Slide Down
+        # Zjazd w dół
         anim_pos = QPropertyAnimation(self, b"pos")
         anim_pos.setDuration(200)
         start_pos = self.pos()
@@ -90,16 +89,16 @@ class NotificationPopup(QWidget):
         self.group_enter.start()
 
     def close_animation(self):
-        """Fade out and slide up."""
+        """Wygaszenie i przesunięcie w górę"""
         self.group = QParallelAnimationGroup(self)
         
-        # Opacity
+        # Przezroczystość
         anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity")
         anim_fade.setDuration(300)
         anim_fade.setStartValue(1)
         anim_fade.setEndValue(0)
         
-        # Position (Slide Up)
+        # Pozycja
         anim_pos = QPropertyAnimation(self, b"pos")
         anim_pos.setDuration(300)
         start_pos = self.pos()

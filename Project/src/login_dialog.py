@@ -1,4 +1,4 @@
-"""Login dialog for user authentication."""
+"""Okno logowania do uwierzytelniania użytkownika"""
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
@@ -7,10 +7,10 @@ from constants import MSG_INCORRECT_PASSWORD, MSG_ENTER_USERNAME
 
 
 class LoginDialog(QWidget):
-    """Custom styled login dialog matching app theme."""
+    """Niestandardowo stylizowane okno logowania zgodne z motywem aplikacji."""
     
     def __init__(self):
-        """Initialize login dialog."""
+        """Inicjalizuj okno logowania."""
         super().__init__()
         self.authenticated = False
         self.logged_in_username = None
@@ -60,19 +60,19 @@ class LoginDialog(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(20)
         
-        # Icon/Title
+        # Ikona/tytuł
         title_label = QLabel("🔐")
         title_label.setStyleSheet("font-size: 48px;")
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
-        # App name
+        # Nazwa aplikacji
         app_label = QLabel("Password Manager")
         app_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #f5f5f7;")
         app_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(app_label)
         
-        # Subtitle
+        # Podtytuł
         subtitle = QLabel("Sign in to your account")
         subtitle.setStyleSheet("font-size: 14px; color: #98989d;")
         subtitle.setAlignment(Qt.AlignCenter)
@@ -80,19 +80,19 @@ class LoginDialog(QWidget):
         
         layout.addSpacing(10)
         
-        # Username input
+        # Pole nazwy użytkownika
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Username")
         layout.addWidget(self.username_input)
 
-        # Password input
+        # Pole hasła
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setPlaceholderText("Master Password")
         self.password_input.returnPressed.connect(self.verify)
         layout.addWidget(self.password_input)
         
-        # Error label (hidden by default)
+        # Etykieta błędu (domyślnie ukryta)
         self.error_label = QLabel("")
         self.error_label.setStyleSheet("color: #ff453a; font-size: 14px;")
         self.error_label.setAlignment(Qt.AlignCenter)
@@ -100,14 +100,14 @@ class LoginDialog(QWidget):
         
         layout.addStretch()
         
-        # Login button
+        # Przycisk logowania
         login_btn = QPushButton("Unlock")
         login_btn.setObjectName("loginBtn")
         login_btn.setCursor(Qt.PointingHandCursor)
         login_btn.clicked.connect(self.verify)
         layout.addWidget(login_btn)
         
-        # Create Account button
+        # Przycisk tworzenia konta
         create_btn = QPushButton("Create Account")
         create_btn.setCursor(Qt.PointingHandCursor)
         create_btn.setStyleSheet("""
@@ -132,7 +132,7 @@ class LoginDialog(QWidget):
 
     
     def verify(self):
-        """Verify user credentials against user profiles."""
+        """Zweryfikuj dane logowania względem profili użytkowników."""
         username = self.username_input.text().strip()
         password = self.password_input.text()
         
@@ -150,7 +150,7 @@ class LoginDialog(QWidget):
             self.password_input.clear()
     
     def open_register(self):
-        """Open registration dialog."""
+        """Otwórz okno rejestracji."""
         from register_dialog import RegisterDialog
         self.register_dialog = RegisterDialog(login_dialog=self)
         self.register_dialog.show()

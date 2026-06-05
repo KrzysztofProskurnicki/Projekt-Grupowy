@@ -1,4 +1,4 @@
-"""Profile View - User profile management with account info, export, password change, and account deletion."""
+"""Widok profilu - zarządzanie profilem użytkownika, eksportem, zmiany hasła i usuwaniem konta"""
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -17,7 +17,7 @@ from widgets.notification_popup import NotificationPopup
 
 
 class ChangePasswordWorker(QThread):
-    """Background thread for re-encrypting the vault during password change."""
+    """Wątek tła do przeszyfrowania sejfu podczas zmiany hasła"""
     progress = pyqtSignal(int)
     finished_ok = pyqtSignal()
     finished_err = pyqtSignal(str)
@@ -43,7 +43,7 @@ class ChangePasswordWorker(QThread):
 
 
 class ProfileView(QWidget):
-    """Profile management view."""
+    """Widok zarządzania profilem."""
 
     account_deleted = pyqtSignal()
 
@@ -55,26 +55,25 @@ class ProfileView(QWidget):
         self._worker = None
         self._build_ui()
 
-    # -------------------------------------------------------------- refresh --
     def refresh_theme(self):
-        """Rebuild UI with current theme colors."""
-        # Save password field state
+        """Przebuduj UI z bieżącymi kolorami motywu"""
+        # Zapisz stan pól hasła
         old_cur = self.current_pw.text() if hasattr(self, 'current_pw') else ""
         old_new = self.new_pw.text() if hasattr(self, 'new_pw') else ""
         old_conf = self.confirm_pw.text() if hasattr(self, 'confirm_pw') else ""
 
-        # Destroy everything
+        # Usuń wszystko
         old_layout = self.layout()
         if old_layout:
             QWidget().setLayout(old_layout)
         self._build_ui()
 
-        # Restore
+        # Przywróć
         self.current_pw.setText(old_cur)
         self.new_pw.setText(old_new)
         self.confirm_pw.setText(old_conf)
 
-    # ------------------------------------------------------------------ UI --
+    # --- UI --
     def _build_ui(self):
         self.setStyleSheet(f"background-color: {styles.DARK_BG};")
 
@@ -91,7 +90,7 @@ class ProfileView(QWidget):
         self.layout_main.setContentsMargins(40, 40, 40, 40)
         self.layout_main.setSpacing(30)
 
-        # Page title
+        # Tytuł strony
         title = QLabel("👤 Profile")
         title.setStyleSheet(
             f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 10px;"
@@ -110,7 +109,7 @@ class ProfileView(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(scroll)
 
-    # ------------------------------------------------ 1. Account Info Card --
+    # --- 1. Karta informacji o koncie --
     def _build_account_info(self):
         card = self._card_frame()
         layout = QVBoxLayout(card)
@@ -202,7 +201,7 @@ class ProfileView(QWidget):
         box.addWidget(lbl)
         parent_layout.addLayout(box)
 
-    # -------------------------------------------------- 2. Export Vault --
+    # --- 2. Eksport sejfu --
     def _build_export_section(self):
         card = self._card_frame()
         layout = QVBoxLayout(card)
@@ -246,7 +245,7 @@ class ProfileView(QWidget):
         except Exception as e:
             NotificationPopup(f"Export failed: {e}", self).show()
 
-    # ----------------------------------------- 3. Change Master Password --
+    # --- 3. Zmiana hasła głównego ---
     def _build_change_password(self):
         card = self._card_frame()
         layout = QVBoxLayout(card)
@@ -385,7 +384,7 @@ class ProfileView(QWidget):
         self.pw_progress.hide()
         self._worker = None
 
-    # ----------------------------------------------- 4. Delete Account --
+    # --- 4. Usunięcie konta ---
     def _build_delete_account(self):
         card = QFrame()
         card.setStyleSheet(f"""
@@ -492,7 +491,7 @@ class ProfileView(QWidget):
         else:
             self.delete_status.setText("Failed to delete account.")
 
-    # ---------------------------------------------------------- Helpers --
+    # --- Pomocniki --
     def _card_frame(self) -> QFrame:
         frame = QFrame()
         frame.setStyleSheet(f"background-color: {styles.CARD_BG}; border-radius: 12px;")

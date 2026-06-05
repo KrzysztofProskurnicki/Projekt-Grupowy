@@ -1,4 +1,4 @@
-"""Password model - dataclass representing a single password entry."""
+"""Model hasła - dataclass reprezentujący pojedynczy wpis hasła."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class Password:
-    """Password data model."""
+    """Model danych hasła."""
     
     # Podstawowe dane
     name: str              # Nazwa konta (np. "GitHub")

@@ -1,4 +1,4 @@
-"""Add Password View - Form for adding new password entries."""
+"""Widok dodawania hasła"""
 
 import styles
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -9,32 +9,30 @@ from services.password_generator import generate_strong_password
 
 
 class AddPasswordView(QWidget):
-    """Form view for adding a new password entry."""
     
-    password_created = pyqtSignal(dict)  # Emits the new password data
+    password_created = pyqtSignal(dict)
     back_clicked = pyqtSignal()
     
     def __init__(self):
-        """Initialize the add password form."""
         super().__init__()
         self.init_ui()
     
     def init_ui(self):
-        """Build the add password form UI."""
+        """Zbuduj interfejs formularza dodawania hasła"""
         self.setStyleSheet(f"background-color: {styles.DARK_BG};")
         
-        # Main layout
+        # Główny układ
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
         
-        # Header bar
+        # Pasek nagłówka
         header_widget = QWidget()
         header_widget.setStyleSheet(f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};")
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(24, 16, 24, 16)
         
-        # Back button
+        # Przycisk powrotu
         back_btn = QPushButton("← Back")
         back_btn.setCursor(Qt.PointingHandCursor)
         back_btn.setStyleSheet(f"""
@@ -54,29 +52,25 @@ class AddPasswordView(QWidget):
         header_layout.addWidget(back_btn)
         
         header_layout.addStretch()
-        
-        # Title
+
         title_label = QLabel("Add New Password")
         title_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {styles.TEXT_PRIMARY}; background: transparent;")
         title_label.setAlignment(Qt.AlignCenter)
         header_layout.addWidget(title_label)
         
         header_layout.addStretch()
-        
-        # Spacer to balance the back button
+
         spacer = QWidget()
         spacer.setFixedWidth(80)
         header_layout.addWidget(spacer)
         
         outer_layout.addWidget(header_widget)
-        
-        # Scrollable form content
+
         form_container = QWidget()
         form_layout = QVBoxLayout(form_container)
         form_layout.setContentsMargins(40, 30, 40, 30)
         form_layout.setSpacing(0)
-        
-        # Center the form with max width
+
         form_card = QFrame()
         form_card.setMaximumWidth(600)
         form_card.setStyleSheet(f"""
@@ -88,7 +82,7 @@ class AddPasswordView(QWidget):
         card_layout.setContentsMargins(32, 32, 32, 32)
         card_layout.setSpacing(20)
         
-        # --- Website field ---
+        # --- Pole strony ---
         website_label = QLabel("Website")
         website_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(website_label)
@@ -98,7 +92,7 @@ class AddPasswordView(QWidget):
         self.website_input.setStyleSheet(self._input_style())
         card_layout.addWidget(self.website_input)
         
-        # --- Username field ---
+        # --- Pole nazwy użytkownika ---
         username_label = QLabel("Username")
         username_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(username_label)
@@ -108,12 +102,12 @@ class AddPasswordView(QWidget):
         self.username_input.setStyleSheet(self._input_style())
         card_layout.addWidget(self.username_input)
         
-        # --- Password field ---
+        # --- Pole hasła ---
         password_label = QLabel("Password")
         password_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(password_label)
 
-        # Password input + Generate button in one row.
+        # Pole hasła i przycisk generowania w jednym wierszu
         password_row = QHBoxLayout()
         password_row.setSpacing(8)
 
@@ -148,7 +142,7 @@ class AddPasswordView(QWidget):
 
         card_layout.addLayout(password_row)
         
-        # --- Notes field ---
+        # --- Pole notatek ---
         notes_label = QLabel("Notes")
         notes_label.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {styles.TEXT_SECONDARY}; background: transparent; border: none;")
         card_layout.addWidget(notes_label)
@@ -171,7 +165,7 @@ class AddPasswordView(QWidget):
         """)
         card_layout.addWidget(self.notes_input)
         
-        # Error / status label
+        # Etykieta statusu
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #ff453a; font-size: 14px; background: transparent; border: none;")
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -179,11 +173,11 @@ class AddPasswordView(QWidget):
         
         card_layout.addSpacing(10)
         
-        # --- Buttons row ---
+        # --- Wiersz przycisków ---
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
         
-        # Back button (inside form)
+        # Przycisk powrotu
         form_back_btn = QPushButton("Back")
         form_back_btn.setCursor(Qt.PointingHandCursor)
         form_back_btn.setStyleSheet(f"""
@@ -206,7 +200,7 @@ class AddPasswordView(QWidget):
         form_back_btn.clicked.connect(self._on_back)
         btn_layout.addWidget(form_back_btn)
         
-        # Create button
+        # Przycisk tworzenia
         create_btn = QPushButton("Create")
         create_btn.setCursor(Qt.PointingHandCursor)
         create_btn.setStyleSheet(f"""
@@ -230,8 +224,7 @@ class AddPasswordView(QWidget):
         btn_layout.addWidget(create_btn)
         
         card_layout.addLayout(btn_layout)
-        
-        # Center the card in the form area
+
         center_layout = QHBoxLayout()
         center_layout.addStretch()
         center_layout.addWidget(form_card)
@@ -243,7 +236,7 @@ class AddPasswordView(QWidget):
         outer_layout.addWidget(form_container)
     
     def _input_style(self) -> str:
-        """Return shared input field style."""
+        """Zwróć wspólny styl pól wejściowych"""
         return f"""
             QLineEdit {{
                 background-color: {styles.INPUT_BG};
@@ -259,38 +252,32 @@ class AddPasswordView(QWidget):
         """
     
     def refresh_theme(self):
-        """Re-build the entire UI to pick up the latest theme colours."""
-        # Delete all children
+        """Przebuduj cały interfejs, aby zastosować najnowsze kolory motywu"""
         for child in self.findChildren(QWidget):
             child.deleteLater()
-        # Re-init
+        # Zainicjalizuj ponownie
         old_layout = self.layout()
         if old_layout:
             QWidget().setLayout(old_layout)
         self.init_ui()
     
     def _on_generate(self):
-        """Fill the password field with a freshly generated strong password.
-
-        Reveals the password (Normal echo) so the user can read what was
-        generated before saving it.
-        """
+        """Wypełnij pole hasła nowo wygenerowanym silnym hasłem"""
         self.password_input.setText(generate_strong_password(length=20))
         self.password_input.setEchoMode(QLineEdit.Normal)
 
     def _on_back(self):
-        """Handle back button click."""
         self._clear_form()
         self.back_clicked.emit()
     
     def _on_create(self):
-        """Validate and create the new password entry."""
+        """Zweryfikuj dane i utwórz nowy wpis hasła."""
         website = self.website_input.text().strip()
         username = self.username_input.text().strip()
         password = self.password_input.text()
         notes = self.notes_input.toPlainText().strip()
         
-        # Validate required fields
+        # Zweryfikuj wymagane pola
         if not website:
             self.status_label.setText("Website is required")
             self.website_input.setFocus()
@@ -306,13 +293,13 @@ class AddPasswordView(QWidget):
             self.password_input.setFocus()
             return
         
-        # Determine color based on first letter
+        # Wyznacz kolor na podstawie pierwszej litery
         colors = ["#24292e", "#db4437", "#e50914", "#232f3e", "#1db954",
                   "#0077b5", "#0061ff", "#1da1f2", "#555555", "#003087",
                   "#00a4ef", "#ff0000", "#ff9f0a", "#bf5af2", "#30d158"]
         color = colors[hash(website) % len(colors)]
         
-        # Build password entry
+        # Zbuduj wpis hasła
         new_entry = {
             "name": website,
             "email": username,
@@ -327,7 +314,6 @@ class AddPasswordView(QWidget):
         self._clear_form()
     
     def _clear_form(self):
-        """Clear all form fields."""
         self.website_input.clear()
         self.username_input.clear()
         self.password_input.clear()

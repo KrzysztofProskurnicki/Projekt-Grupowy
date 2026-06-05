@@ -1,5 +1,4 @@
-"""Main application window - Password Manager."""
-
+"""Główne okno aplikacji - menedżera haseł"""
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
@@ -8,8 +7,6 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt5.QtGui import QFont
 
-
-# Application modules
 from styles import *
 import styles
 from config import *
@@ -22,7 +19,6 @@ from services.password_service import PasswordService
 from services.authentication_service import AuthenticationService
 from services.migration import migrate_if_needed
 from services.settings_service import SettingsService
-from widgets.password_item_widget import PasswordItemWidget
 from add_password_view import AddPasswordView
 from profile_view import ProfileView
 from settings_view import SettingsView
@@ -48,20 +44,20 @@ class MainWindow(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
-        # Inicjalizuj serwisy (scoped to user)
+        # Inicjalizuj serwisy w zakresie użytkownika
         self.password_service = PasswordService(username)
         self.settings_service = SettingsService()
         self.current_filter = FILTER_ALL
         
-        # Setup Auto-Lock Timer
+        # Skonfiguruj timer automatycznej blokady
         self.auto_lock_timer = QTimer(self)
         self.auto_lock_timer.timeout.connect(self._on_auto_lock)
         self._update_auto_lock_timer()
         
-        # Install event filter to track user activity for Auto-Lock
+        # Zainstaluj filtr zdarzeń śledz?ący aktywność użytkownika dla automatycznej blokady
         QApplication.instance().installEventFilter(self)
         
-        # Setup Clipboard Auto-Clear
+        # Skonfiguruj automatyczne czyszczenie schowka
         self.clipboard_clear_timer = QTimer(self)
         self.clipboard_clear_timer.setSingleShot(True)
         self.clipboard_clear_timer.timeout.connect(self._clear_clipboard)
@@ -76,32 +72,32 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # --- SIDEBAR (Left side) ---
+        # --- SIDEBAR (lewa strona) ---
         self.sidebar = Sidebar(username=username)
         self.sidebar.nav_clicked.connect(self.handle_nav_click)
         self.sidebar.logout_clicked.connect(self._on_logout)
         
-        # --- CONTENT (Right side) ---
+        # --- CONTENT (prawa strona) ---
         content_area = QWidget()
         content_layout = QVBoxLayout(content_area)
         content_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Stacked Widget for view switching
+        # QStackedWidget do przełączania widoków
         self.stacked_widget = QStackedWidget()
         
-        # Password list view (main view)
+        # Widok listy haseł (widok główny)
         self.page_list = QWidget()
         list_layout = QVBoxLayout(self.page_list)
         list_layout.setContentsMargins(0, 0, 0, 0)
         list_layout.setSpacing(0)
         
-        # Search & Actions Header
+        # Nagłówek wyszukiwania i akcji
         self.header_widget = QWidget()
         self.header_widget.setStyleSheet(f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};")
         header_layout = QHBoxLayout(self.header_widget)
         header_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Search Bar
+        # Pasek wyszukiwania
         search_input = QLineEdit()
         search_input.setPlaceholderText("Search passwords...")
         search_input.setFixedWidth(300)
@@ -110,7 +106,7 @@ class MainWindow(QMainWindow):
         
         header_layout.addStretch()
         
-        # Add Button
+        # Przycisk dodawania
         add_btn = QPushButton(" + Add ")
         add_btn.setStyleSheet(
             "QPushButton {"
@@ -128,58 +124,56 @@ class MainWindow(QMainWindow):
         
         list_layout.addWidget(self.header_widget)
         
-        # Password List
+        # Lista haseł
         self.list_widget = QListWidget()
         self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.itemClicked.connect(self.open_detail_view)
         list_layout.addWidget(self.list_widget)
         
-        self.stacked_widget.addWidget(self.page_list)  # Index 0
+        self.stacked_widget.addWidget(self.page_list)  # Indeks 0
         
-        # Detail Page
+        # Strona szczegółów
         self.page_detail = DetailView(self.show_list, self.toggle_favorite)
-        self.stacked_widget.addWidget(self.page_detail)  # Index 1
+        self.stacked_widget.addWidget(self.page_detail)  # Indeks 1
         
-        # Security Dashboard Page
+        # Strona panelu bezpieczeństwa
         self.page_security = SecurityView(self.show_list, self.navigate_to_detail)
-        self.stacked_widget.addWidget(self.page_security)  # Index 2
+        self.stacked_widget.addWidget(self.page_security)  # Indeks 2
         
-        # Placeholders for new pages
+        # Zakłada dla Valut View
         self.page_vault = QLabel("Vault View (Coming Soon)")
         self.page_vault.setAlignment(Qt.AlignCenter)
         self.page_vault.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
-        self.stacked_widget.addWidget(self.page_vault)  # Index 3
+        self.stacked_widget.addWidget(self.page_vault)  # Indeks 3
         
         self.page_settings = SettingsView(self.settings_service)
         self.page_settings.settings_changed.connect(self._on_settings_changed)
         self.page_settings.theme_changed.connect(self._on_theme_changed)
         self.page_settings.font_size_changed.connect(self._on_font_size_changed)
-        self.stacked_widget.addWidget(self.page_settings)  # Index 4
+        self.stacked_widget.addWidget(self.page_settings)  # Indeks 4
         
         self.page_profile = ProfileView(username, self.password_service)
         self.page_profile.account_deleted.connect(self._on_logout)
-        self.stacked_widget.addWidget(self.page_profile)  # Index 5
+        self.stacked_widget.addWidget(self.page_profile)  # Indeks 5
         
-        # Add Password Form Page
+        # Strona formularza dodawania hasła
         self.page_add_password = AddPasswordView()
         self.page_add_password.password_created.connect(self.on_password_created)
         self.page_add_password.back_clicked.connect(self.show_list)
-        self.stacked_widget.addWidget(self.page_add_password)  # Index 6
+        self.stacked_widget.addWidget(self.page_add_password)  # Indeks 6
         
         content_layout.addWidget(self.stacked_widget)
-        
-        # Initial load
+
         self.refresh_list()
         self.update_badges()
-            
-        # Assembly
+
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(content_area)
 
     
     def _on_logout(self):
-        """Handle logout - clear vault key, emit signal, close window."""
+        """Obsługa wylogowania: wyczyszczenie klucza sejfu, emisja sygnału i zamknięcie okna"""
         QApplication.instance().removeEventFilter(self)
         self.auto_lock_timer.stop()
         AuthenticationService().logout()
@@ -187,12 +181,12 @@ class MainWindow(QMainWindow):
         self.close()
         
     def _on_auto_lock(self):
-        """Triggered when auto-lock timer expires."""
+        """Wywoływane po upływie timera automatycznej blokady"""
         print("Auto-locking vault due to inactivity.")
         self._on_logout()
         
     def _update_auto_lock_timer(self):
-        """Update auto-lock timer based on settings."""
+        """Zaktualizuj timer automatycznej blokady na podstawie ustawień"""
         minutes = self.settings_service.auto_lock_minutes
         if minutes > 0:
             self.auto_lock_timer.start(minutes * 60 * 1000)
@@ -200,20 +194,19 @@ class MainWindow(QMainWindow):
             self.auto_lock_timer.stop()
 
     def eventFilter(self, obj, event):
-        """Intercept events to reset the auto-lock timer on user activity."""
+        """Przechwytywanie zdarzenia, aby resetować timer automatycznej blokady przy aktywności użytkownika"""
         if event.type() in (QEvent.KeyPress, QEvent.MouseMove, QEvent.MouseButtonPress):
             if self.settings_service.auto_lock_minutes > 0:
                 self.auto_lock_timer.start(self.settings_service.auto_lock_minutes * 60 * 1000)
         return super().eventFilter(obj, event)
 
     def _on_clipboard_changed(self):
-        """Start clipboard clear timer if setting is enabled and clipboard has text."""
+        """Uruchom timer czyszczenia schowka, jeśli ustawienie jest włączone i schowek zawiera tekst"""
         seconds = self.settings_service.clipboard_clear_seconds
         if seconds > 0 and QApplication.clipboard().text():
             self.clipboard_clear_timer.start(seconds * 1000)
 
     def _clear_clipboard(self):
-        """Clear the clipboard."""
         QApplication.clipboard().clear()
         
     def _on_settings_changed(self, key, value):
@@ -224,22 +217,20 @@ class MainWindow(QMainWindow):
         styles.apply_theme(theme)
         app = QApplication.instance()
         app.setStyleSheet(styles.get_stylesheet(theme))
-        # Refresh all views
         self._refresh_all_views()
         
     def _refresh_all_views(self):
-        """Rebuild all view UIs with current theme colors."""
-        # Refresh the password list header
+        """Przebuduj interfejsy wszystkich widoków z bieżącym kolorem motywu"""
         self.header_widget.setStyleSheet(
             f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};"
         )
-        # Refresh views that support it
+        # Odśwież widok okna
         for view in (self.page_detail, self.page_security,
                      self.page_add_password, self.page_profile,
                      self.page_settings):
             if hasattr(view, 'refresh_theme'):
                 view.refresh_theme()
-        # Rebuild password list cards
+        # Przebuduj karty listy haseł
         self.refresh_list()
         
     def _on_font_size_changed(self, size):
@@ -249,24 +240,21 @@ class MainWindow(QMainWindow):
         app.setFont(font)
     
     def load_data(self):
-        """Load password data - delegated to service (deprecated)."""
         return self.password_service.get_all_passwords()
     
     def save_data(self):
-        """Save password data - delegated to service (deprecated)."""
         self.password_service.save_passwords()
             
     def update_badges(self):
-        """Update sidebar badges with counts from service."""
+        """Zaktualizuj liczniki sidebara wartościami z serwisu"""
         self.sidebar.update_badge(NAV_INDEX_ALL_PASSWORDS, self.password_service.get_password_count())
         self.sidebar.update_badge(NAV_INDEX_FAVORITES, self.password_service.get_favorites_count())
         self.sidebar.update_badge(NAV_INDEX_SECURITY, self.password_service.get_weak_count())
     
     def refresh_list(self):
-        """Refresh the password list based on current filter."""
+        """Odświeżanie listy haseł na podstawie bieżącego filtru"""
         self.list_widget.clear()
-        
-        # Get passwords based on filter using service
+
         if self.current_filter == FILTER_FAVORITES:
             passwords = self.password_service.get_favorites()
         elif self.current_filter == FILTER_SECURITY:
@@ -278,7 +266,6 @@ class MainWindow(QMainWindow):
             self.add_list_item(entry)
 
     def filter_list(self, text):
-        """Filter list by search text."""
         text = text.lower()
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
@@ -296,13 +283,13 @@ class MainWindow(QMainWindow):
         favorite = bool(entry.get("favorite", False))
         item = QListWidgetItem()
         
-        # 1. Container Widget (Transparent, holds margins)
+        # 1. Widget kontenera
         container_widget = QWidget()
         container_layout = QVBoxLayout(container_widget)
-        container_layout.setContentsMargins(0, 5, 0, 5) # Spacing between cards
+        container_layout.setContentsMargins(0, 5, 0, 5) # Odst?p mi?dzy kartami
         container_layout.setSpacing(0)
         
-        # 2. Card Frame (Visible, holds content)
+        # 2. Ramka karty
         card_frame = QFrame()
         card_frame.setMinimumHeight(80)
         card_frame.setObjectName("cardFrame")
@@ -316,12 +303,11 @@ class MainWindow(QMainWindow):
             }}
         """)
         
-        # Content Layout inside Card
+        # Układ treści wewnątrz karty
         hbox = QHBoxLayout(card_frame)
         hbox.setContentsMargins(15, 10, 15, 10)
         hbox.setSpacing(15)
-        
-        # Icon Circle
+
         icon_lbl = QLabel(letter)
         icon_lbl.setFixedSize(48, 48)
         icon_lbl.setAlignment(Qt.AlignCenter)
@@ -335,7 +321,7 @@ class MainWindow(QMainWindow):
         """)
         hbox.addWidget(icon_lbl)
         
-        # Text Content
+        # Treść tekstowa
         text_container = QWidget()
         vbox = QVBoxLayout(text_container)
         vbox.setContentsMargins(0, 0, 0, 0)
@@ -354,7 +340,7 @@ class MainWindow(QMainWindow):
         hbox.addWidget(text_container)
         hbox.addStretch()
         
-        # Favorite Icon
+        # Ikona ulubionego wpisu
         if favorite:
             fav_lbl = QLabel("⭐")
             fav_lbl.setStyleSheet("font-size: 16px; background: transparent; border: none;")
@@ -365,15 +351,13 @@ class MainWindow(QMainWindow):
         chevron.setStyleSheet(f"color: {styles.TEXT_SECONDARY}; font-size: 24px; font-weight: bold; background: transparent; border: none;")
         hbox.addWidget(chevron)
         
-        # Add Card to Container
+        # Dodaj karty do kontenera
         container_layout.addWidget(card_frame)
         
         item.setSizeHint(container_widget.sizeHint())
         self.list_widget.addItem(item)
         self.list_widget.setItemWidget(item, container_widget)
-        
-        # Store the full decrypted entry on the item so the detail view
-        # can show actual password / notes / etc. without re-querying.
+
         item.setData(Qt.UserRole, entry)
 
     def open_detail_view(self, item):
@@ -382,7 +366,6 @@ class MainWindow(QMainWindow):
             self.navigate_to_detail(entry)
 
     def navigate_to_detail(self, entry):
-        """Navigate to detail view with the given decrypted entry dict."""
         self.page_detail.update_data(entry)
         self.stacked_widget.setCurrentIndex(VIEW_INDEX_DETAIL)
             
@@ -390,7 +373,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.setCurrentIndex(0)
     
     def handle_nav_click(self, index):
-        """Handle navigation button click from sidebar."""
+        """Obsługa kliknięcia przycisku nawigacji w sidebarze"""
         if index == NAV_INDEX_ALL_PASSWORDS:
             self.current_filter = FILTER_ALL
             self.refresh_list()
@@ -411,16 +394,14 @@ class MainWindow(QMainWindow):
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_PROFILE)
     
     def toggle_favorite(self, name, is_favorite):
-        """Toggle favorite status for a password using service."""
+        """Przełączanie status ulubionego hasła przez serwis"""
         self.password_service.toggle_favorite(name, is_favorite)
         self.update_badges()
         
     def show_add_form(self):
-        """Show the add password form."""
         self.stacked_widget.setCurrentIndex(6)
     
     def on_password_created(self, password_data):
-        """Handle new password created from form."""
         self.password_service.add_password(password_data)
         self.refresh_list()
         self.update_badges()
@@ -428,9 +409,8 @@ class MainWindow(QMainWindow):
 
 
 def run_app():
-    """Run the application with login/logout loop."""
-    # One-shot migration from the legacy plaintext users.json into the
-    # encrypted SQLite vault. Safe to call on every launch (idempotent).
+    """Uruchomienie aplikacj z pętlą logowania/wylogowania"""
+    # Jednorazowa migracja ze starego jawnego users.json do szyfrowanego sejfu SQLite. Bezpieczna przy każdym starcie.
     migrate_if_needed()
 
     app = QApplication(sys.argv)
@@ -446,21 +426,20 @@ def run_app():
     app.setStyleSheet(styles.get_stylesheet(settings.theme))
     
     while True:
-        # Show Login Dialog
+        # Pokaż okno logowania
         login = LoginDialog()
         login.show()
         app.exec_()
         
         if not login.authenticated:
-            # User closed login window without logging in
+            # Użytkownik zamknoł okno logowania bez logowania
             break
         
-        # User authenticated - open main window
+        # Użytkownik uwierzytelniony
         username = login.logged_in_username
         window = MainWindow(username)
         window.show()
-        
-        # Track logout state
+
         logout_requested = [False]
         
         def on_logout():
@@ -471,10 +450,9 @@ def run_app():
         app.exec_()
         
         if not logout_requested[0]:
-            # User closed main window (not via logout) - exit app
+            # Użytkownik zamknoł główne okno bez wylogowania - zakończ działanie aplikacji
             break
-        
-        # Logout was requested - loop back to login
+
     
     sys.exit(0)
 

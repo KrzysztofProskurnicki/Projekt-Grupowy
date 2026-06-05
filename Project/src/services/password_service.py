@@ -1,13 +1,4 @@
-"""Password Service - per-user CRUD over the encrypted SQLite vault.
-
-The public surface here is intentionally identical to the previous JSON-backed
-implementation so existing UI code (main.py, views, widgets) doesn't have to
-change. Internally we delegate persistence to :mod:`vault_repository` and
-encryption to the shared :data:`crypto_service.crypto_manager`.
-
-Returned dictionaries match the legacy schema used by the UI:
-``{name, email, password, notes, color, weak_password, favorite}``.
-"""
+"""Serwis haseł - operacje CRUD dla użytkownika na szyfrowanym sejfie SQLite"""
 
 from typing import Any, Dict, List, Optional
 
@@ -16,7 +7,6 @@ from services import vault_repository
 
 
 class PasswordService:
-    """Manages CRUD + filtering for the currently logged-in user's vault."""
 
     def __init__(self, username: str) -> None:
         self._username = username
@@ -30,10 +20,10 @@ class PasswordService:
             user = vault_repository.find_user(session, self._username)
             self._user_id = user.id if user is not None else None
 
-    # --- loading ---
+    # --- ładowanie ---
 
     def load_passwords(self) -> None:
-        """Load and decrypt the current user's entries into an in-memory cache."""
+        """Załaduj i odszyfruj wpisy bieżącego użytkownika do cache w pamięci."""
         if self._user_id is None:
             self._cache = []
             return
@@ -42,8 +32,7 @@ class PasswordService:
             entries = vault_repository.list_entries(session, self._user_id)
             self._cache = [self._entry_to_dict(e) for e in entries]
 
-    def save_passwords(self) -> None:  # kept for backwards compatibility
-        """No-op: writes happen synchronously inside add_password/toggle_favorite."""
+    def save_passwords(self) -> None:  # zachowane dla kompatybilności wstecznej
         return
 
     @staticmethod
@@ -66,7 +55,7 @@ class PasswordService:
             "favorite": entry.favorite,
         }
 
-    # --- read API ---
+    # --- API odczytu ---
 
     def get_all_passwords(self) -> List[Dict[str, Any]]:
         return self._cache
@@ -93,7 +82,7 @@ class PasswordService:
     def get_weak_count(self) -> int:
         return sum(1 for p in self._cache if p.get("weak_password", False))
 
-    # --- write API ---
+    # --- API zapisu ---
 
     def toggle_favorite(self, name: str, is_favorite: bool) -> None:
         if self._user_id is None:
@@ -106,9 +95,7 @@ class PasswordService:
                 break
 
     def add_password(self, password_data: Dict[str, Any]) -> None:
-        """Encrypt and persist a new entry. ``password_data`` follows the
-        legacy dict shape produced by AddPasswordView (name/email/password/
-        notes/color/weak_password/favorite)."""
+        """Zaszyfruj i utrwal nowy wpis"""
         if self._user_id is None:
             return
 
@@ -147,14 +134,10 @@ class PasswordService:
             "favorite": favorite,
         })
 
-    # --- export ---
+    # --- eksport ---
 
     def export_to_csv(self, filepath: str) -> None:
-        """Export all decrypted passwords to a CSV file (name, email, password).
-
-        Args:
-            filepath: Absolute path where the CSV file will be written.
-        """
+        """Wyeksportuj wszystkie odszyfrowane hasła do pliku CSV (name, email, password)"""
         import csv
 
         with open(filepath, "w", newline="", encoding="utf-8") as f:
