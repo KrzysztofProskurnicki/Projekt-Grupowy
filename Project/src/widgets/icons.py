@@ -13,6 +13,8 @@ from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QApplication
 from PyQt5.QtSvg import QSvgRenderer
 
+import styles
+
 # Project/assets/icons (trzy poziomy w górę z src/widgets/icons.py)
 _ICON_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -120,7 +122,7 @@ def section_header(
     txt = QLabel(text)
     weight = "bold" if bold else "500"
     txt.setStyleSheet(
-        f"font-size: {font_px}px; font-weight: {weight}; color: {text_color};"
+        f"font-size: {styles.font_px(font_px)}px; font-weight: {weight}; color: {text_color};"
         " background: transparent; border: none;"
     )
     lay.addWidget(txt)

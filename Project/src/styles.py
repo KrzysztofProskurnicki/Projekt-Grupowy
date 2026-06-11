@@ -90,6 +90,34 @@ ORANGE_SOFT = "rgba(255, 159, 10, 16%)"
 BLUE_SOFT   = "rgba(10, 132, 255, 16%)"
 
 # ===== FONTY =====
+# Bazowy rozmiar, dla ktorego projektowano wszystkie wielkosci pikselowe.
+# font_px() skaluje je proporcjonalnie do rozmiaru wybranego w ustawieniach.
+FONT_BASE = 14
+FONT_SIZE = 14
+
+
+def set_font_size(size: int) -> None:
+    """Ustaw globalny rozmiar fontu (z ustawien); font_px() skaluje wzgledem niego."""
+    global FONT_SIZE
+    FONT_SIZE = max(1, int(size))
+
+
+def font_px(design_px: int) -> int:
+    """Przeskaluj projektowy rozmiar w px do bieżącego rozmiaru fontu."""
+    return max(1, int(round(design_px * FONT_SIZE / FONT_BASE)))
+
+
+def font_px_soft(design_px: int) -> int:
+    """Jak font_px, ale z połową siły skalowania.
+
+    Dla dużych elementów w kontenerach o sztywnych wymiarach (nazwa marki
+    w sidebarze 280px, liczba w pierścieniu wyniku 168px) - pełna skala
+    wypycha je poza obrys przy większych rozmiarach fontu.
+    """
+    factor = 1 + (FONT_SIZE / FONT_BASE - 1) / 2
+    return max(1, int(round(design_px * factor)))
+
+
 FONT_SIZE_SMALL  = "12px"
 FONT_SIZE_NORMAL = "14px"
 FONT_SIZE_MEDIUM = "16px"
@@ -112,7 +140,7 @@ def _rebuild_derived():
         f"border: 1px solid {HAIRLINE};"
     )
     SECTION_TITLE_STYLE = (
-        f"font-size: 17px; font-weight: 600; "
+        f"font-size: {font_px(17)}px; font-weight: 600; "
         f"color: {TEXT_PRIMARY}; background: transparent; border: none;"
     )
     PROGRESS_BAR_STYLE = (
@@ -122,7 +150,7 @@ def _rebuild_derived():
     )
     # Konwencja etykiet pól: uppercase, tracking, tertiary (ds-field-label)
     FIELD_LABEL_STYLE = (
-        f"font-size: 11px; font-weight: 600; letter-spacing: 1px; "
+        f"font-size: {font_px(11)}px; font-weight: 600; letter-spacing: 1px; "
         f"color: {TEXT_TERTIARY}; background: transparent; border: none;"
     )
 
@@ -240,6 +268,9 @@ def get_stylesheet(theme: str) -> str:
     p = _THEMES[resolve_theme(theme)]
     accent = _ACCENTS[ACTIVE_ACCENT]["base"]
     return f"""
+    QWidget {{
+        font-size: {font_px(14)}px;
+    }}
     QMainWindow {{
         background-color: {p["DARK_BG"]};
     }}
@@ -266,7 +297,7 @@ def get_stylesheet(theme: str) -> str:
         border-radius: 8px;
         padding: 10px 12px;
         border: 1px solid {p["HAIRLINE"]};
-        font-size: 14px;
+        font-size: {font_px(14)}px;
     }}
     QLineEdit:focus {{
         border: 1px solid {accent};
@@ -282,7 +313,7 @@ def get_stylesheet(theme: str) -> str:
         padding: 11px 12px;
         border-radius: 8px;
         color: {p["TEXT_SECONDARY"]};
-        font-size: 14px;
+        font-size: {font_px(14)}px;
         font-weight: 500;
         background-color: transparent;
         border: none;
@@ -297,7 +328,7 @@ def get_stylesheet(theme: str) -> str:
     }}
     QLabel.badge {{
         color: {p["TEXT_TERTIARY"]};
-        font-size: 13px;
+        font-size: {font_px(13)}px;
         font-weight: 600;
     }}
     QToolTip {{

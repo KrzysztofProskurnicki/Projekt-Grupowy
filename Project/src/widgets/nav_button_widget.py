@@ -36,7 +36,7 @@ class NavButtonWidget(QWidget):
         self.badge = QLabel(str(count) if count > 0 else "")
         self.badge.setProperty("class", "badge")
         if is_active:
-            self.badge.setStyleSheet("color: rgba(255, 255, 255, 85%); font-size: 13px; font-weight: 600;")
+            self.badge.setStyleSheet(f"color: rgba(255, 255, 255, 85%); font-size: {styles.font_px(13)}px; font-weight: 600;")
 
         self.btn_layout = QHBoxLayout(self.btn)
         self.btn_layout.setContentsMargins(10, 0, 10, 0)
@@ -59,7 +59,7 @@ class NavButtonWidget(QWidget):
                     padding: 11px 12px;
                     border-radius: 8px;
                     color: white;
-                    font-size: 14px;
+                    font-size: {styles.font_px(14)}px;
                     font-weight: 500;
                     background-color: {styles.COLOR_BLUE};
                     border: none;
@@ -72,7 +72,7 @@ class NavButtonWidget(QWidget):
                     padding: 11px 12px;
                     border-radius: 8px;
                     color: {styles.TEXT_SECONDARY};
-                    font-size: 14px;
+                    font-size: {styles.font_px(14)}px;
                     font-weight: 500;
                     background-color: transparent;
                     border: none;

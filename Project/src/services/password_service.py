@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 from services.crypto_service import crypto_manager
+from services.security_service import SecurityService
 from services import vault_repository
 
 
@@ -45,13 +46,20 @@ class PasswordService:
             return ""
 
     def _entry_to_dict(self, entry) -> Dict[str, Any]:
+        password = self._decrypt_optional(entry.enc_password)
+        # Siła liczona na żywo z odszyfrowanego hasła (zxcvbn), nie z bazy -
+        # dzięki temu zmiana algorytmu oceny działa też dla starych wpisów
+        ev = SecurityService.evaluate_password(password)
         return {
             "name": entry.name,
             "email": self._decrypt_optional(entry.enc_email),
-            "password": self._decrypt_optional(entry.enc_password),
+            "password": password,
             "notes": self._decrypt_optional(entry.enc_notes),
             "color": entry.color,
-            "weak_password": entry.weak_password,
+            "weak_password": ev["level"] == "weak",
+            "strength": ev["level"],
+            "pw_score": ev["score"],
+            "dictionary": ev["dictionary"],
             "favorite": entry.favorite,
         }
 
@@ -105,7 +113,8 @@ class PasswordService:
         notes = password_data.get("notes", "")
         color = password_data.get("color", "#333333")
         favorite = bool(password_data.get("favorite", False))
-        weak = bool(password_data.get("weak_password", False))
+        ev = SecurityService.evaluate_password(password)
+        weak = ev["level"] == "weak"
 
         enc_email = crypto_manager.encrypt(email) if email else None
         enc_password = crypto_manager.encrypt(password) if password else None
@@ -131,8 +140,59 @@ class PasswordService:
             "notes": notes,
             "color": color,
             "weak_password": weak,
+            "strength": ev["level"],
+            "pw_score": ev["score"],
+            "dictionary": ev["dictionary"],
             "favorite": favorite,
         })
+
+    def update_password(self, original_name: str, password_data: Dict[str, Any]) -> bool:
+        """Zaszyfruj i utrwal edytowany wpis (status ulubionego zostaje)."""
+        if self._user_id is None:
+            return False
+
+        name = password_data.get("name", "")
+        email = password_data.get("email", "")
+        password = password_data.get("password", "")
+        notes = password_data.get("notes", "")
+        color = password_data.get("color", "#333333")
+        ev = SecurityService.evaluate_password(password)
+        weak = ev["level"] == "weak"
+
+        enc_email = crypto_manager.encrypt(email) if email else None
+        enc_password = crypto_manager.encrypt(password) if password else None
+        enc_notes = crypto_manager.encrypt(notes) if notes else None
+
+        with vault_repository.session_scope() as session:
+            updated = vault_repository.update_entry(
+                session,
+                self._user_id,
+                original_name,
+                name=name,
+                color=color,
+                weak_password=weak,
+                enc_email=enc_email,
+                enc_password=enc_password,
+                enc_notes=enc_notes,
+            )
+        if not updated:
+            return False
+
+        for entry in self._cache:
+            if entry["name"] == original_name:
+                entry.update({
+                    "name": name,
+                    "email": email,
+                    "password": password,
+                    "notes": notes,
+                    "color": color,
+                    "weak_password": weak,
+                    "strength": ev["level"],
+                    "pw_score": ev["score"],
+                    "dictionary": ev["dictionary"],
+                })
+                break
+        return True
 
     # --- eksport ---
 

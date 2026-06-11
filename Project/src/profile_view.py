@@ -128,7 +128,7 @@ class ProfileView(QWidget):
             background-color: {styles.COLOR_BLUE};
             color: white;
             border-radius: 32px;
-            font-size: 28px;
+            font-size: {styles.font_px(28)}px;
             font-weight: bold;
             border: none;
         """)
@@ -139,7 +139,7 @@ class ProfileView(QWidget):
 
         name_lbl = QLabel(self._username)
         name_lbl.setStyleSheet(
-            f"font-size: 21px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(21)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         info_box.addWidget(name_lbl)
@@ -148,7 +148,7 @@ class ProfileView(QWidget):
         since_text = created.strftime("%B %d, %Y") if created else "Unknown"
         since_lbl = QLabel(f"Member since {since_text}")
         since_lbl.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         info_box.addWidget(since_lbl)
@@ -167,12 +167,19 @@ class ProfileView(QWidget):
         all_passwords = self._password_service.get_all_passwords()
         total = len(all_passwords)
         favs = sum(1 for p in all_passwords if p.get("favorite"))
-        weak = sum(1 for p in all_passwords if p.get("weak_password"))
-        strong = total - weak
+        levels = [
+            p.get("strength") if p.get("strength") in ("weak", "medium", "strong")
+            else ("weak" if p.get("weak_password") else "strong")
+            for p in all_passwords
+        ]
+        weak = levels.count("weak")
+        medium = levels.count("medium")
+        strong = levels.count("strong")
 
         self._add_stat(stats_row, "key-round", "Total", str(total), styles.COLOR_BLUE)
         self._add_stat(stats_row, "star", "Favorites", str(favs), styles.COLOR_YELLOW)
         self._add_stat(stats_row, "circle-check", "Strong", str(strong), styles.COLOR_GREEN)
+        self._add_stat(stats_row, "shield-half", "Medium", str(medium), styles.COLOR_YELLOW)
         self._add_stat(stats_row, "triangle-alert", "Weak", str(weak), styles.COLOR_RED)
 
         layout.addLayout(stats_row)
@@ -187,7 +194,7 @@ class ProfileView(QWidget):
         ico = icon_label(icon, color, 17)
         val_lbl = QLabel(value)
         val_lbl.setStyleSheet(
-            f"font-size: 22px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(22)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         val_row.addWidget(ico)
@@ -197,7 +204,7 @@ class ProfileView(QWidget):
         lbl = QLabel(label)
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(
-            f"font-size: 13px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         box.addWidget(lbl)
@@ -222,7 +229,7 @@ class ProfileView(QWidget):
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
@@ -237,7 +244,7 @@ class ProfileView(QWidget):
                 color: {styles.TEXT_PRIMARY};
                 border-radius: 8px;
                 padding: 10px 18px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 600;
                 border: none;
             }}
@@ -282,7 +289,7 @@ class ProfileView(QWidget):
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
@@ -311,7 +318,7 @@ class ProfileView(QWidget):
 
         self.pw_status = QLabel("")
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.pw_status.setAlignment(Qt.AlignCenter)
@@ -330,7 +337,7 @@ class ProfileView(QWidget):
                 border-radius: 6px;
                 text-align: center;
                 color: {styles.TEXT_PRIMARY};
-                font-size: 12px;
+                font-size: {styles.font_px(12)}px;
                 font-weight: 600;
             }}
             QProgressBar::chunk {{
@@ -359,21 +366,21 @@ class ProfileView(QWidget):
         if not old or not new or not confirm:
             self.pw_status.setText(MSG_FILL_ALL_FIELDS)
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
         if new != confirm:
             self.pw_status.setText(MSG_NEW_PASSWORDS_NOT_MATCH)
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
         if new == old:
             self.pw_status.setText("New password must be different from current.")
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
@@ -398,7 +405,7 @@ class ProfileView(QWidget):
         self.pw_progress.setValue(100)
         self.pw_status.setText(MSG_PASSWORD_CHANGED)
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_GREEN}; font-size: 14px;"
+            f"color: {styles.COLOR_GREEN}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.current_pw.clear()
@@ -412,7 +419,7 @@ class ProfileView(QWidget):
     def _on_pw_error(self, msg):
         self.pw_status.setText(msg)
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.change_pw_btn.setEnabled(True)
@@ -443,14 +450,14 @@ class ProfileView(QWidget):
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
 
         confirm_lbl = QLabel(f'Type "{self._username}" to confirm:')
         confirm_lbl.setStyleSheet(
-            f"font-size: 13px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(confirm_lbl)
@@ -465,7 +472,7 @@ class ProfileView(QWidget):
                 border-radius: 8px;
                 padding: 10px;
                 border: 1px solid {styles.BORDER_COLOR};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {styles.COLOR_RED};
@@ -475,7 +482,7 @@ class ProfileView(QWidget):
 
         self.delete_status = QLabel("")
         self.delete_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         layout.addWidget(self.delete_status)
@@ -489,7 +496,7 @@ class ProfileView(QWidget):
                 color: white;
                 border-radius: 8px;
                 padding: 12px 24px;
-                font-size: 16px;
+                font-size: {styles.font_px(16)}px;
                 font-weight: 600;
                 border: none;
             }}
@@ -547,7 +554,7 @@ class ProfileView(QWidget):
                 border-radius: 8px;
                 padding: 10px;
                 border: 1px solid {styles.BORDER_COLOR};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {styles.COLOR_BLUE};
@@ -563,7 +570,7 @@ class ProfileView(QWidget):
                 color: white;
                 border-radius: 8px;
                 padding: 10px 18px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 600;
                 border: none;
             }}

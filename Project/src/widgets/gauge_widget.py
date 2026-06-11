@@ -70,13 +70,15 @@ class GaugeWidget(QWidget):
                             int(round(-self.SPAN * frac * 16)))
 
         # --- Liczba wyniku + "/100" (wyrownane do linii bazowej) ---
+        # Tłumione skalowanie - pierścień ma sztywne 168px, pełna skala
+        # wypycha liczbę poza obrys przy większym foncie
         font_num = QFont("Segoe UI")
-        font_num.setPixelSize(44)
+        font_num.setPixelSize(styles.font_px_soft(38))
         font_num.setWeight(QFont.Bold)
         fm_num = QFontMetrics(font_num)
 
         font_sub = QFont("Segoe UI")
-        font_sub.setPixelSize(15)
+        font_sub.setPixelSize(styles.font_px_soft(14))
         font_sub.setWeight(QFont.DemiBold)
         fm_sub = QFontMetrics(font_sub)
 
@@ -93,7 +95,7 @@ class GaugeWidget(QWidget):
             cap_h = int(fm_num.ascent() * 0.72)
 
         font_pill = QFont("Segoe UI")
-        font_pill.setPixelSize(11)
+        font_pill.setPixelSize(styles.font_px_soft(11))
         font_pill.setWeight(QFont.Bold)
         font_pill.setLetterSpacing(QFont.AbsoluteSpacing, 0.7)
         fm_pill = QFontMetrics(font_pill)

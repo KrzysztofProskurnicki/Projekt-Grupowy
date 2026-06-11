@@ -38,7 +38,7 @@ class MasterPasswordOverlay(QWidget):
             }}
             QLabel {{
                 color: {TEXT_PRIMARY};
-                font-size: 16px;
+                font-size: {styles.font_px(16)}px;
                 background: transparent;
                 border: none;
             }}
@@ -48,7 +48,7 @@ class MasterPasswordOverlay(QWidget):
                 border: 1px solid #48484a;
                 border-radius: 6px;
                 padding: 8px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid #0a84ff;
@@ -59,7 +59,7 @@ class MasterPasswordOverlay(QWidget):
                 border: none;
                 border-radius: 6px;
                 padding: 8px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QPushButton:hover {{
                 background-color: #48484a;

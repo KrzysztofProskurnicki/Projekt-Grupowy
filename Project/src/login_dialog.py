@@ -72,13 +72,13 @@ class LoginDialog(QWidget):
         
         # Nazwa aplikacji
         app_label = QLabel("Password Manager")
-        app_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #f5f5f7;")
+        app_label.setStyleSheet(f"font-size: {styles.font_px(24)}px; font-weight: bold; color: #f5f5f7;")
         app_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(app_label)
         
         # Podtytuł
         subtitle = QLabel("Sign in to your account")
-        subtitle.setStyleSheet("font-size: 14px; color: #98989d;")
+        subtitle.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: #98989d;")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
         
@@ -98,7 +98,7 @@ class LoginDialog(QWidget):
         
         # Etykieta błędu (domyślnie ukryta)
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+        self.error_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
         self.error_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.error_label)
         

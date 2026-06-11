@@ -18,7 +18,7 @@ _VALID_CLIPBOARD_CLEAR = (0, 10, 30, 60, 120)
 _VALID_THEMES = ('system', 'dark', 'light')
 _VALID_ACCENTS = ('blue', 'indigo', 'purple', 'pink', 'orange', 'green')
 _FONT_SIZE_MIN = 10
-_FONT_SIZE_MAX = 22
+_FONT_SIZE_MAX = 18
 
 
 class SettingsService:

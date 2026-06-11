@@ -18,15 +18,27 @@ class AddPasswordModal(QWidget):
     """
 
     password_created = pyqtSignal(dict)
+    password_edited = pyqtSignal(str, dict)  # (oryginalna nazwa, nowe dane)
 
-    def __init__(self, parent):
+    def __init__(self, parent, entry=None, existing_names=None):
+        """Argumenty:
+            entry: Edytowany wpis (dict) - None oznacza tryb dodawania.
+            existing_names: Nazwy istniejących wpisów (walidacja duplikatów).
+        """
         super().__init__(parent)
+        self._edit_entry = dict(entry) if entry else None
+        self._existing_names = set(existing_names or [])
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         # Przyciemnienie tła (overlay-scrim)
         self.setStyleSheet("background-color: rgba(0, 0, 0, 55%);")
         self.resize(parent.size())
         self.init_ui()
+        if self._edit_entry:
+            self.website_input.setText(self._edit_entry.get("name", ""))
+            self.username_input.setText(self._edit_entry.get("email", ""))
+            self.password_input.setText(self._edit_entry.get("password", ""))
+            self.notes_input.setPlainText(self._edit_entry.get("notes", ""))
 
     def init_ui(self):
         """Zbuduj kartę formularza"""
@@ -50,9 +62,9 @@ class AddPasswordModal(QWidget):
 
         # --- Nagłówek: tytuł + X ---
         head_row = QHBoxLayout()
-        title = QLabel("New Password")
+        title = QLabel("Edit Password" if self._edit_entry else "New Password")
         title.setStyleSheet(
-            f"font-size: 21px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(21)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         head_row.addWidget(title)
@@ -97,7 +109,7 @@ class AddPasswordModal(QWidget):
         notes_group.addWidget(notes_lbl)
         self.notes_input = QTextEdit()
         self.notes_input.setPlaceholderText("Optional notes...")
-        self.notes_input.setFixedHeight(76)
+        self.notes_input.setFixedHeight(styles.font_px(76))
         self.notes_input.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {styles.INPUT_BG};
@@ -105,7 +117,7 @@ class AddPasswordModal(QWidget):
                 border-radius: 8px;
                 padding: 10px;
                 border: 1px solid {styles.HAIRLINE};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QTextEdit:focus {{
                 border: 1px solid {styles.COLOR_BLUE};
@@ -117,7 +129,7 @@ class AddPasswordModal(QWidget):
         # Etykieta statusu (walidacja)
         self.status_label = QLabel("")
         self.status_label.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 13px; background: transparent; border: none;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(13)}px; background: transparent; border: none;"
         )
         self.status_label.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(self.status_label)
@@ -136,7 +148,7 @@ class AddPasswordModal(QWidget):
                 border: none;
                 border-radius: 8px;
                 padding: 10px 18px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
@@ -147,7 +159,7 @@ class AddPasswordModal(QWidget):
         cancel_btn.clicked.connect(self.close)
         btn_row.addWidget(cancel_btn)
 
-        create_btn = QPushButton("  Create")
+        create_btn = QPushButton("  Save" if self._edit_entry else "  Create")
         create_btn.setIcon(QIcon(tinted_pixmap("check", "#ffffff", 16)))
         create_btn.setIconSize(QSize(16, 16))
         create_btn.setCursor(Qt.PointingHandCursor)
@@ -158,7 +170,7 @@ class AddPasswordModal(QWidget):
                 border: none;
                 border-radius: 8px;
                 padding: 10px 18px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 600;
             }}
             QPushButton:hover {{
@@ -186,7 +198,8 @@ class AddPasswordModal(QWidget):
 
         field = QLineEdit()
         field.setPlaceholderText(placeholder)
-        field.setFixedHeight(40)
+        # Wysokość skaluje się z fontem - sztywne 40px ucina descendery (g, y)
+        field.setFixedHeight(styles.font_px(40))
         field.addAction(
             QIcon(tinted_pixmap(icon_name, styles.TEXT_TERTIARY, 16)),
             QLineEdit.LeadingPosition,
@@ -198,7 +211,7 @@ class AddPasswordModal(QWidget):
                 border-radius: 8px;
                 padding: 8px 10px;
                 border: 1px solid {styles.HAIRLINE};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {styles.COLOR_BLUE};
@@ -239,6 +252,28 @@ class AddPasswordModal(QWidget):
         if not password:
             self.status_label.setText("Password is required")
             self.password_input.setFocus()
+            return
+
+        # Duplikaty nazw: przy edycji własna nazwa wpisu jest dozwolona
+        original_name = self._edit_entry.get("name") if self._edit_entry else None
+        if website in self._existing_names and website != original_name:
+            self.status_label.setText("An entry with this name already exists")
+            self.website_input.setFocus()
+            return
+
+        if self._edit_entry:
+            edited = {
+                "name": website,
+                "email": username,
+                "password": password,
+                "notes": notes,
+                # Kolor i status ulubionego zostają z oryginału
+                "color": self._edit_entry.get("color", "#333333"),
+                "weak_password": len(password) < 8,
+                "favorite": self._edit_entry.get("favorite", False),
+            }
+            self.password_edited.emit(original_name, edited)
+            self.close()
             return
 
         # Wyznacz kolor na podstawie nazwy strony

@@ -49,8 +49,9 @@ class Sidebar(QFrame):
         brand_layout.addWidget(brand_icon)
 
         brand_name = QLabel("Password Manager")
+        # Tłumione skalowanie + limit - pełna skala ucina nazwę przy dużym foncie
         brand_name.setStyleSheet(
-            f"font-size: 19px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {min(styles.font_px_soft(19), 21)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         brand_layout.addWidget(brand_name)
@@ -106,7 +107,7 @@ class Sidebar(QFrame):
         avatar.setAlignment(Qt.AlignCenter)
         avatar.setStyleSheet(
             f"background-color: {styles.COLOR_BLUE}; color: white; border-radius: 17px;"
-            " font-size: 15px; font-weight: bold; border: none;"
+            f" font-size: {styles.font_px(15)}px; font-weight: bold; border: none;"
         )
         account_layout.addWidget(avatar)
 
@@ -115,12 +116,12 @@ class Sidebar(QFrame):
         name_box.setSpacing(1)
         name_lbl = QLabel(self._username)
         name_lbl.setStyleSheet(
-            f"font-size: 13px; font-weight: 600; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(13)}px; font-weight: 600; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         sub_lbl = QLabel("Signed in")
         sub_lbl.setStyleSheet(
-            f"font-size: 12px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(12)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         name_box.addWidget(name_lbl)
@@ -143,7 +144,7 @@ class Sidebar(QFrame):
                 border: 1px solid {styles.COLOR_RED};
                 border-radius: 8px;
                 padding: 10px 12px;
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 500;
                 text-align: left;
             }}
@@ -162,12 +163,12 @@ class Sidebar(QFrame):
         for i, nav_widget in enumerate(self.nav_buttons):
             if i == index:
                 nav_widget.btn.setChecked(True)
-                nav_widget.badge.setStyleSheet("color: rgba(255, 255, 255, 85%); font-size: 13px; font-weight: 600; background: transparent;")
+                nav_widget.badge.setStyleSheet(f"color: rgba(255, 255, 255, 85%); font-size: {styles.font_px(13)}px; font-weight: 600; background: transparent;")
                 nav_widget.set_icon_color("white")
                 nav_widget.update_style(True)
             else:
                 nav_widget.btn.setChecked(False)
-                nav_widget.badge.setStyleSheet(f"color: {styles.TEXT_TERTIARY}; font-size: 13px; font-weight: 600; background: transparent;")
+                nav_widget.badge.setStyleSheet(f"color: {styles.TEXT_TERTIARY}; font-size: {styles.font_px(13)}px; font-weight: 600; background: transparent;")
                 nav_widget.set_icon_color(styles.TEXT_SECONDARY)
                 nav_widget.update_style(False)
 

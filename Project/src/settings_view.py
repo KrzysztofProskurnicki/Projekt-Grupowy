@@ -109,7 +109,7 @@ class SettingsView(QWidget):
                         color: white;
                         border-radius: 6px;
                         padding: 6px 14px;
-                        font-size: 13px;
+                        font-size: {styles.font_px(13)}px;
                         font-weight: 600;
                         border: none;
                     }}
@@ -121,7 +121,7 @@ class SettingsView(QWidget):
                         color: {styles.TEXT_SECONDARY};
                         border-radius: 6px;
                         padding: 6px 14px;
-                        font-size: 13px;
+                        font-size: {styles.font_px(13)}px;
                         font-weight: 600;
                         border: none;
                     }}
@@ -153,7 +153,7 @@ class SettingsView(QWidget):
             "You will be logged out and need to sign in again."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        desc.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
         options = [("Off", 0), ("1 min", 1), ("5 min", 5), ("10 min", 10), ("15 min", 15), ("30 min", 30)]
 
@@ -178,7 +178,7 @@ class SettingsView(QWidget):
             "to prevent it from staying accessible."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        desc.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
         options = [("Off", 0), ("10 sec", 10), ("30 sec", 30), ("60 sec", 60), ("120 sec", 120)]
 
@@ -199,7 +199,7 @@ class SettingsView(QWidget):
         head.setStyleSheet(styles.SECTION_TITLE_STYLE)
         layout.addWidget(head)
         desc = QLabel("Choose the visual appearance of the application.")
-        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        desc.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
 
         def set_theme(t):
@@ -237,7 +237,7 @@ class SettingsView(QWidget):
         head.setStyleSheet(styles.SECTION_TITLE_STYLE)
         layout.addWidget(head)
         desc = QLabel("Pick the highlight color used for buttons, links and selections.")
-        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        desc.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
 
         row = QHBoxLayout()
@@ -284,13 +284,14 @@ class SettingsView(QWidget):
         head.setStyleSheet(styles.SECTION_TITLE_STYLE)
         layout.addWidget(head)
         desc = QLabel("Adjust the interface font size for better readability.")
-        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        desc.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
 
         slider_row = QHBoxLayout()
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(10)
-        self.slider.setMaximum(22)
+        # Maks. 18 - powyżej teksty przestają się mieścić (sidebar, gauge)
+        self.slider.setMaximum(18)
         self.slider.setValue(self._settings.font_size)
         self.slider.setTickPosition(QSlider.TicksBelow)
         self.slider.setTickInterval(2)
@@ -312,7 +313,7 @@ class SettingsView(QWidget):
         """)
 
         self.size_lbl = QLabel(f"{self._settings.font_size}px")
-        self.size_lbl.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {styles.TEXT_PRIMARY}; border:none;")
+        self.size_lbl.setStyleSheet(f"font-size: {styles.font_px(16)}px; font-weight: bold; color: {styles.TEXT_PRIMARY}; border:none;")
 
         slider_row.addWidget(self.slider)
         slider_row.addWidget(self.size_lbl)
@@ -324,13 +325,51 @@ class SettingsView(QWidget):
         )
         layout.addWidget(self.preview_lbl)
 
+        # Przycisk aplikowania - suwak zmienia tylko podgląd, dopiero Apply
+        # zapisuje rozmiar i przebudowuje całe UI
+        self.apply_font_btn = QPushButton("Apply")
+        self.apply_font_btn.setCursor(Qt.PointingHandCursor)
+        self.apply_font_btn.setEnabled(False)
+        self._update_apply_btn_style()
+
+        def commit():
+            val = self.slider.value()
+            self._settings.font_size = val
+            self.font_size_changed.emit(val)
+
         def on_slider_change(val):
             self.size_lbl.setText(f"{val}px")
             self.preview_lbl.setStyleSheet(
                 f"font-size: {val}px; color: {styles.TEXT_PRIMARY}; border: none; margin-top: 10px;"
             )
-            self._settings.font_size = val
-            self.font_size_changed.emit(val)
+            self.apply_font_btn.setEnabled(val != self._settings.font_size)
 
         self.slider.valueChanged.connect(on_slider_change)
+        self.apply_font_btn.clicked.connect(commit)
+
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(self.apply_font_btn)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+
         self.layout_main.addWidget(card)
+
+    def _update_apply_btn_style(self):
+        self.apply_font_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {styles.COLOR_BLUE};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 9px 22px;
+                font-size: {styles.font_px(14)}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {styles.COLOR_BLUE_HOVER};
+            }}
+            QPushButton:disabled {{
+                background-color: {styles.RAISED_BG};
+                color: {styles.TEXT_TERTIARY};
+            }}
+        """)

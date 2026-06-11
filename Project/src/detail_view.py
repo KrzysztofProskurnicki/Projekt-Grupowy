@@ -22,21 +22,26 @@ PASSWORD_MASK = "•" * 12
 
 class DetailView(QWidget):
 
-    def __init__(self, switch_back_callback=None, favorite_callback=None):
+    def __init__(self, switch_back_callback=None, favorite_callback=None,
+                 edit_callback=None):
         """Inicjalizuj panel szczegółów.
 
         Argumenty:
             switch_back_callback: Zachowane dla kompatybilności (panel nie ma
                 przycisku powrotu - nawigacja przez sidebar).
             favorite_callback: Funkcja przełączająca status ulubionego wpisu.
+            edit_callback: Funkcja otwierająca edycję bieżącego wpisu (dict).
         """
         super().__init__()
         self.switch_back_callback = switch_back_callback
         self.favorite_callback = favorite_callback
+        self.edit_callback = edit_callback
         self.current_name = ""
+        self._last_entry = None
 
         # Zmienne stanu
         self.is_favorite = False
+        self.strength_level = "strong"
         self.password_visible = False
         self.auth_service = AuthenticationService()
         self.actual_password = ""
@@ -70,7 +75,7 @@ class DetailView(QWidget):
 
         empty_lbl = QLabel("Select an entry to view its details")
         empty_lbl.setStyleSheet(
-            f"font-size: 15px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(15)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         empty_layout.addWidget(empty_lbl, 0, Qt.AlignHCenter)
@@ -101,7 +106,7 @@ class DetailView(QWidget):
             background-color: {styles.CARD_BG};
             color: white;
             border-radius: 14px;
-            font-size: 26px;
+            font-size: {styles.font_px(26)}px;
             font-weight: bold;
             border: none;
         """)
@@ -110,7 +115,7 @@ class DetailView(QWidget):
         title_box.setSpacing(8)
         self.title_label = QLabel("")
         self.title_label.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(28)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
 
@@ -118,11 +123,11 @@ class DetailView(QWidget):
         sub_row.setSpacing(10)
         self.link_label = QLabel("")
         self.link_label.setStyleSheet(
-            f"font-size: 13px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         self.strength_badge = QLabel("")
-        self.strength_badge.setFixedHeight(22)
+        self.strength_badge.setFixedHeight(styles.font_px(22))
         sub_row.addWidget(self.link_label)
         sub_row.addWidget(self.strength_badge)
         sub_row.addStretch()
@@ -138,10 +143,33 @@ class DetailView(QWidget):
         self.update_star_style()
         self.star_btn.clicked.connect(self.toggle_favorite)
 
+        # Edycja wpisu - przycisk wtórny z piórem (na prawo od gwiazdki)
+        self.edit_btn = QPushButton("  Edit")
+        self.edit_btn.setIcon(QIcon(tinted_pixmap("pencil", styles.TEXT_PRIMARY, 16)))
+        self.edit_btn.setIconSize(QSize(16, 16))
+        self.edit_btn.setCursor(Qt.PointingHandCursor)
+        self.edit_btn.setFixedHeight(styles.font_px(36))
+        self.edit_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {styles.RAISED_BG};
+                color: {styles.TEXT_PRIMARY};
+                border: 1px solid {styles.HAIRLINE_STRONG};
+                border-radius: 8px;
+                padding: 0px 14px;
+                font-size: {styles.font_px(13)}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {styles.HOVER_BG};
+            }}
+        """)
+        self.edit_btn.clicked.connect(self._on_edit_clicked)
+
         header_layout.addWidget(self.icon_label, 0, Qt.AlignTop)
         header_layout.addLayout(title_box)
         header_layout.addStretch()
         header_layout.addWidget(self.star_btn, 0, Qt.AlignTop)
+        header_layout.addWidget(self.edit_btn, 0, Qt.AlignTop)
 
         self.main_layout.addLayout(header_layout)
         self.main_layout.addSpacing(16)
@@ -224,21 +252,21 @@ class DetailView(QWidget):
             value_widget.setStyleSheet(f"""
                 QTextEdit {{
                     color: {styles.TEXT_PRIMARY};
-                    font-size: 15px;
+                    font-size: {styles.font_px(15)}px;
                     border: none;
                     background: transparent;
                 }}
             """)
             # Pionowa polityka Fixed - domyślne Expanding QTextEdit propaguje
             # się przez layout karty i rozciąga całe pole na wolną przestrzeń
-            value_widget.setFixedHeight(72)
+            value_widget.setFixedHeight(styles.font_px(72))
             value_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             self.notes_edit = value_widget
         else:
             value_widget = QLabel(value_text)
             color = styles.COLOR_BLUE if is_link else styles.TEXT_PRIMARY
             value_widget.setStyleSheet(
-                f"color: {color}; font-size: 15px; border: none; background: transparent;"
+                f"color: {color}; font-size: {styles.font_px(15)}px; border: none; background: transparent;"
             )
 
             if label_text == "USERNAME": self.username_lbl = value_widget
@@ -327,6 +355,11 @@ class DetailView(QWidget):
         popup = NotificationPopup(message, self)
         popup.show()
 
+    def _on_edit_clicked(self):
+        """Otwórz modal edycji bieżącego wpisu."""
+        if self.edit_callback and self._last_entry:
+            self.edit_callback(dict(self._last_entry))
+
     def toggle_favorite(self):
         self.is_favorite = not self.is_favorite
         self.update_star_style()
@@ -347,16 +380,18 @@ class DetailView(QWidget):
         )
 
     def _update_strength_badge(self):
-        """Pokaż pigułkę Strong/Weak obok loginu (jak Badge we wzorcu)."""
-        if self.is_weak:
-            text, fg, bg = "Weak", styles.COLOR_RED, styles.RED_SOFT
-        else:
-            text, fg, bg = "Strong", styles.COLOR_GREEN, styles.GREEN_SOFT
+        """Pokaż pigułkę Strong/Medium/Weak obok loginu (jak Badge we wzorcu)."""
+        levels = {
+            "strong": ("Strong", styles.COLOR_GREEN, styles.GREEN_SOFT),
+            "medium": ("Medium", styles.COLOR_YELLOW, styles.YELLOW_SOFT),
+            "weak": ("Weak", styles.COLOR_RED, styles.RED_SOFT),
+        }
+        text, fg, bg = levels.get(self.strength_level, levels["weak"])
         self.strength_badge.setText(text)
-        self.strength_badge.setFixedHeight(20)
+        self.strength_badge.setFixedHeight(styles.font_px(20))
         self.strength_badge.setStyleSheet(
             f"color: {fg}; background-color: {bg}; border: none; border-radius: 10px;"
-            " font-size: 11px; font-weight: 600; padding: 0px 8px;"
+            f" font-size: {styles.font_px(11)}px; font-weight: 600; padding: 0px 8px;"
         )
 
     def toggle_password_visibility(self):
@@ -400,8 +435,17 @@ class DetailView(QWidget):
         self.is_favorite = favorite
         self.actual_password = password
         self.is_weak = bool(entry.get("weak_password", False))
+        self.strength_level = entry.get(
+            "strength", "weak" if self.is_weak else "strong"
+        )
         self.update_star_style()
         self._update_strength_badge()
+        score = entry.get("pw_score")
+        if score is not None:
+            tip = f"Password score: {score}/100"
+            if entry.get("dictionary"):
+                tip += " (dictionary-based)"
+            self.strength_badge.setToolTip(tip)
 
         self.title_label.setText(name)
         self.icon_label.setText(letter)
@@ -409,7 +453,7 @@ class DetailView(QWidget):
             background-color: {color};
             color: white;
             border-radius: 14px;
-            font-size: 26px;
+            font-size: {styles.font_px(26)}px;
             font-weight: bold;
             border: none;
         """)

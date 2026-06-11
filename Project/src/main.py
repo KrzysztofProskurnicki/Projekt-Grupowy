@@ -125,7 +125,6 @@ class MainWindow(QMainWindow):
         # Pasek wyszukiwania
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search vault...")
-        self.search_input.setFixedHeight(38)
         self.search_input.textChanged.connect(self.filter_list)
         header_layout.addWidget(self.search_input)
 
@@ -148,7 +147,8 @@ class MainWindow(QMainWindow):
         list_page_layout.addWidget(self.list_column)
 
         # --- Prawa kolumna: panel szczegółów wpisu ---
-        self.page_detail = DetailView(self.show_list, self.toggle_favorite)
+        self.page_detail = DetailView(self.show_list, self.toggle_favorite,
+                                      self.show_edit_form)
         list_page_layout.addWidget(self.page_detail, 1)
 
         self._apply_list_chrome()
@@ -243,11 +243,11 @@ class MainWindow(QMainWindow):
             "QWidget#listHeader { background: transparent; border: none; }"
         )
         self.list_title.setStyleSheet(
-            f"font-size: 21px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(21)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         self.empty_label.setStyleSheet(
-            f"color: {styles.TEXT_TERTIARY}; font-size: 14px; padding: 40px 16px;"
+            f"color: {styles.TEXT_TERTIARY}; font-size: {styles.font_px(14)}px; padding: 40px 16px;"
             " background: transparent; border: none;"
         )
         self.add_btn.setStyleSheet(
@@ -257,11 +257,13 @@ class MainWindow(QMainWindow):
             "    border: none;"
             "    border-radius: 8px;"
             "    padding: 7px 14px;"
-            "    font-size: 13px;"
+            f"    font-size: {styles.font_px(13)}px;"
             "    font-weight: 600;"
             "}"
             f"QPushButton:hover {{ background-color: {styles.COLOR_BLUE_HOVER}; }}"
         )
+        # Wysokość szukajki skaluje się z fontem (sztywna ucina descendery)
+        self.search_input.setFixedHeight(styles.font_px(38))
         # Ikona lupy w polu wyszukiwania (re-tint przy zmianie motywu)
         if getattr(self, "_search_action", None) is not None:
             self.search_input.removeAction(self._search_action)
@@ -296,10 +298,18 @@ class MainWindow(QMainWindow):
         self.refresh_list()
         
     def _on_font_size_changed(self, size):
+        styles.set_font_size(size)
         app = QApplication.instance()
+        # Rozmiar w pikselach, spójnie ze skalą QSS; bazowy rozmiar tekstu
+        # i tak narzuca reguła QWidget w arkuszu stylów (setFont bywa
+        # ignorowany przy aktywnym stylesheecie)
         font = app.font()
-        font.setPointSize(size)
+        font.setPixelSize(styles.font_px(14))
         app.setFont(font)
+        app.setStyleSheet(styles.get_stylesheet(self.settings_service.theme))
+        # Odrocz przebudowę widoków - sygnał przychodzi z suwaka, którego nie
+        # wolno zniszczyć w trakcie obsługi jego własnego sygnału
+        QTimer.singleShot(0, self._refresh_all_views)
     
     def load_data(self):
         return self.password_service.get_all_passwords()
@@ -386,7 +396,7 @@ class MainWindow(QMainWindow):
             color: white;
             border-radius: 10px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: {styles.font_px(16)}px;
             border: none;
         """)
         hbox.addWidget(icon_lbl)
@@ -400,9 +410,9 @@ class MainWindow(QMainWindow):
         vbox.setAlignment(Qt.AlignVCenter)
 
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet(f"font-size: 15px; font-weight: 500; color: {styles.TEXT_PRIMARY}; border: none; background: transparent;")
+        title_lbl.setStyleSheet(f"font-size: {styles.font_px(15)}px; font-weight: 500; color: {styles.TEXT_PRIMARY}; border: none; background: transparent;")
         subtitle_lbl = QLabel(subtitle)
-        subtitle_lbl.setStyleSheet(f"font-size: 13px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
+        subtitle_lbl.setStyleSheet(f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
         vbox.addWidget(title_lbl)
         vbox.addWidget(subtitle_lbl)
 
@@ -503,12 +513,28 @@ class MainWindow(QMainWindow):
 
     def show_add_form(self):
         """Otwórz modal dodawania hasła (wyśrodkowana karta na przyciemnionym tle)."""
-        modal = AddPasswordModal(self)
+        names = [e.get("name") for e in self.password_service.get_all_passwords()]
+        modal = AddPasswordModal(self, existing_names=names)
         modal.password_created.connect(self.on_password_created)
+        modal.show()
+
+    def show_edit_form(self, entry):
+        """Otwórz modal edycji wskazanego wpisu."""
+        if not entry:
+            return
+        names = [e.get("name") for e in self.password_service.get_all_passwords()]
+        modal = AddPasswordModal(self, entry=entry, existing_names=names)
+        modal.password_edited.connect(self.on_password_edited)
         modal.show()
 
     def on_password_created(self, password_data):
         self.password_service.add_password(password_data)
+        self.selected_name = password_data.get("name")
+        self.refresh_list()
+        self.update_badges()
+
+    def on_password_edited(self, original_name, password_data):
+        self.password_service.update_password(original_name, password_data)
         self.selected_name = password_data.get("name")
         self.refresh_list()
         self.update_badges()
@@ -529,12 +555,15 @@ def run_app():
     app.setWindowIcon(app_icon())
 
     # Ustawienie fontu na systemowy sans-serif z configu
+    # (rozmiar w pikselach - punkty zależą od DPI i rozjeżdżają się ze skalą QSS)
     from services.settings_service import SettingsService
     settings = SettingsService()
-    font = QFont("Segoe UI", settings.font_size) if sys.platform == "win32" else QFont("Helvetica Neue", settings.font_size)
+    font = QFont("Segoe UI") if sys.platform == "win32" else QFont("Helvetica Neue")
+    font.setPixelSize(settings.font_size)
     app.setFont(font)
 
-    # Aplikowanie stylów z configu (motyw + wybrany akcent)
+    # Aplikowanie stylów z configu (motyw + wybrany akcent + skala fontu)
+    styles.set_font_size(settings.font_size)
     styles.apply_theme(settings.theme)
     styles.apply_accent(settings.accent)
     app.setStyleSheet(styles.get_stylesheet(settings.theme))

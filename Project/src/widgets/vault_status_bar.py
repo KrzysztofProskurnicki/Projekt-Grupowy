@@ -15,17 +15,19 @@ class VaultStatusBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumHeight(56)
-        self.stats = {"strong": 0, "weak": 0, "total": 1}
+        self.stats = {"strong": 0, "medium": 0, "weak": 0, "total": 1}
 
-    def set_stats(self, strong: int, weak: int, total: int):
+    def set_stats(self, strong: int, medium: int, weak: int, total: int):
         """Ustaw statystyki paska.
 
         Argumenty:
             strong: Liczba silnych haseł
+            medium: Liczba średnich haseł
             weak: Liczba słabych haseł
             total: Liczba haseł.
         """
-        self.stats = {"strong": strong, "weak": weak, "total": max(1, total)}
+        self.stats = {"strong": strong, "medium": medium, "weak": weak,
+                      "total": max(1, total)}
         self.update()
 
     def paintEvent(self, event):
@@ -51,6 +53,7 @@ class VaultStatusBar(QWidget):
         total = self.stats["total"]
         segments = [
             (self.stats["strong"], QColor(styles.COLOR_GREEN), "Strong"),
+            (self.stats["medium"], QColor(styles.COLOR_YELLOW), "Medium"),
             (self.stats["weak"], QColor(styles.COLOR_RED), "Weak"),
         ]
 
@@ -67,7 +70,7 @@ class VaultStatusBar(QWidget):
         y_leg = y_bar + self.BAR_H + 24
         x_leg = 0
         font = QFont("Segoe UI")
-        font.setPixelSize(13)
+        font.setPixelSize(styles.font_px(13))
         painter.setFont(font)
 
         for val, color, label in segments:
