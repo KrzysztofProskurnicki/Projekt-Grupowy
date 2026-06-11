@@ -2,9 +2,11 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
+from widgets.icons import tinted_pixmap
 from services.authentication_service import AuthenticationService
-from constants import (MSG_PASSWORDS_NOT_MATCH, MSG_USERNAME_TAKEN, 
+from constants import (MSG_PASSWORDS_NOT_MATCH, MSG_USERNAME_TAKEN,
                        MSG_FILL_ALL_FIELDS, MSG_ACCOUNT_CREATED)
+import styles
 
 
 class RegisterDialog(QWidget):
@@ -19,6 +21,8 @@ class RegisterDialog(QWidget):
         """Zainicjuj interfejs formularza rejestracji"""
         self.setWindowTitle("Password Manager - Create Account")
         self.setFixedSize(450, 560)
+        # Treść dialogu jest na stałe ciemna, więc pasek tytułu też
+        styles.apply_titlebar_theme(self, "dark")
         self.setStyleSheet("""
             QWidget {
                 background-color: #1c1c1e;
@@ -44,10 +48,10 @@ class RegisterDialog(QWidget):
         layout.setSpacing(20)
         
         # Ikona
-        icon_label = QLabel("👤")
-        icon_label.setStyleSheet("font-size: 48px;")
-        icon_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(icon_label)
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(tinted_pixmap("user", "#0a84ff", 56))
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon_lbl)
         
         # Tytuł
         title_label = QLabel("Create Account")

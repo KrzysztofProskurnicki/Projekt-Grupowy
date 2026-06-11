@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
                              QListWidgetItem, QPushButton, QStackedWidget,
                              QFrame)
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent, QSize
+from PyQt5.QtGui import QFont, QIcon
 
 from styles import *
 import styles
@@ -19,9 +19,10 @@ from services.password_service import PasswordService
 from services.authentication_service import AuthenticationService
 from services.migration import migrate_if_needed
 from services.settings_service import SettingsService
-from add_password_view import AddPasswordView
+from add_password_view import AddPasswordModal
 from profile_view import ProfileView
 from settings_view import SettingsView
+from widgets.icons import tinted_pixmap, app_icon
 
 
 
@@ -43,6 +44,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(WINDOW_TITLE)
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
+        styles.apply_titlebar_theme(self)
         
         # Inicjalizuj serwisy w zakresie użytkownika
         self.password_service = PasswordService(username)
@@ -85,84 +87,88 @@ class MainWindow(QMainWindow):
         # QStackedWidget do przełączania widoków
         self.stacked_widget = QStackedWidget()
         
-        # Widok listy haseł (widok główny)
+        # Widok listy haseł + panel szczegółów (dwukolumnowy, wg wzorca Vault)
+        self.selected_name = None
         self.page_list = QWidget()
-        list_layout = QVBoxLayout(self.page_list)
-        list_layout.setContentsMargins(0, 0, 0, 0)
-        list_layout.setSpacing(0)
-        
-        # Nagłówek wyszukiwania i akcji
+        list_page_layout = QHBoxLayout(self.page_list)
+        list_page_layout.setContentsMargins(0, 0, 0, 0)
+        list_page_layout.setSpacing(0)
+
+        # --- Lewa kolumna: tytuł + Add + szukajka + lista wpisów ---
+        self.list_column = QWidget()
+        self.list_column.setObjectName("listColumn")
+        self.list_column.setFixedWidth(360)
+        column_layout = QVBoxLayout(self.list_column)
+        column_layout.setContentsMargins(0, 0, 0, 0)
+        column_layout.setSpacing(0)
+
         self.header_widget = QWidget()
-        self.header_widget.setStyleSheet(f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};")
-        header_layout = QHBoxLayout(self.header_widget)
-        header_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Pasek wyszukiwania
-        search_input = QLineEdit()
-        search_input.setPlaceholderText("Search passwords...")
-        search_input.setFixedWidth(300)
-        search_input.textChanged.connect(self.filter_list)
-        header_layout.addWidget(search_input)
-        
-        header_layout.addStretch()
-        
+        self.header_widget.setObjectName("listHeader")
+        header_layout = QVBoxLayout(self.header_widget)
+        header_layout.setContentsMargins(16, 20, 16, 12)
+        header_layout.setSpacing(14)
+
+        title_row = QHBoxLayout()
+        self.list_title = QLabel("All Passwords")
+        title_row.addWidget(self.list_title)
+        title_row.addStretch()
+
         # Przycisk dodawania
-        add_btn = QPushButton(" + Add ")
-        add_btn.setStyleSheet(
-            "QPushButton {"
-            "    background-color: #0a84ff;"
-            "    color: white;"
-            "    border: none;"
-            "    border-radius: 6px;"
-            "    padding: 8px 16px;"
-            "    font-weight: 500;"
-            "}"
-            "QPushButton:hover { background-color: #0077ea; }"
-        )
-        add_btn.clicked.connect(self.show_add_form)
-        header_layout.addWidget(add_btn)
-        
-        list_layout.addWidget(self.header_widget)
-        
+        self.add_btn = QPushButton("  Add")
+        self.add_btn.setIcon(QIcon(tinted_pixmap("plus", "#ffffff", 15)))
+        self.add_btn.setIconSize(QSize(15, 15))
+        self.add_btn.setCursor(Qt.PointingHandCursor)
+        self.add_btn.clicked.connect(self.show_add_form)
+        title_row.addWidget(self.add_btn)
+        header_layout.addLayout(title_row)
+
+        # Pasek wyszukiwania
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search vault...")
+        self.search_input.setFixedHeight(38)
+        self.search_input.textChanged.connect(self.filter_list)
+        header_layout.addWidget(self.search_input)
+
+        column_layout.addWidget(self.header_widget)
+
+        # Pusty stan listy (np. brak ulubionych)
+        self.empty_label = QLabel("")
+        self.empty_label.setWordWrap(True)
+        self.empty_label.setAlignment(Qt.AlignCenter)
+        self.empty_label.hide()
+        column_layout.addWidget(self.empty_label)
+
         # Lista haseł
         self.list_widget = QListWidget()
         self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.list_widget.itemClicked.connect(self.open_detail_view)
-        list_layout.addWidget(self.list_widget)
-        
-        self.stacked_widget.addWidget(self.page_list)  # Indeks 0
-        
-        # Strona szczegółów
+        self.list_widget.currentItemChanged.connect(self.on_current_item_changed)
+        column_layout.addWidget(self.list_widget)
+
+        list_page_layout.addWidget(self.list_column)
+
+        # --- Prawa kolumna: panel szczegółów wpisu ---
         self.page_detail = DetailView(self.show_list, self.toggle_favorite)
-        self.stacked_widget.addWidget(self.page_detail)  # Indeks 1
-        
+        list_page_layout.addWidget(self.page_detail, 1)
+
+        self._apply_list_chrome()
+
+        self.stacked_widget.addWidget(self.page_list)     # VIEW_INDEX_PASSWORD_LIST
+
         # Strona panelu bezpieczeństwa
         self.page_security = SecurityView(self.show_list, self.navigate_to_detail)
-        self.stacked_widget.addWidget(self.page_security)  # Indeks 2
-        
-        # Zakłada dla Valut View
-        self.page_vault = QLabel("Vault View (Coming Soon)")
-        self.page_vault.setAlignment(Qt.AlignCenter)
-        self.page_vault.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 20px;")
-        self.stacked_widget.addWidget(self.page_vault)  # Indeks 3
-        
+        self.stacked_widget.addWidget(self.page_security)  # VIEW_INDEX_SECURITY
+
         self.page_settings = SettingsView(self.settings_service)
         self.page_settings.settings_changed.connect(self._on_settings_changed)
         self.page_settings.theme_changed.connect(self._on_theme_changed)
         self.page_settings.font_size_changed.connect(self._on_font_size_changed)
-        self.stacked_widget.addWidget(self.page_settings)  # Indeks 4
-        
+        self.stacked_widget.addWidget(self.page_settings)  # VIEW_INDEX_SETTINGS
+
         self.page_profile = ProfileView(username, self.password_service)
         self.page_profile.account_deleted.connect(self._on_logout)
-        self.stacked_widget.addWidget(self.page_profile)  # Indeks 5
-        
-        # Strona formularza dodawania hasła
-        self.page_add_password = AddPasswordView()
-        self.page_add_password.password_created.connect(self.on_password_created)
-        self.page_add_password.back_clicked.connect(self.show_list)
-        self.stacked_widget.addWidget(self.page_add_password)  # Indeks 6
-        
+        self.stacked_widget.addWidget(self.page_profile)   # VIEW_INDEX_PROFILE
+
         content_layout.addWidget(self.stacked_widget)
 
         self.refresh_list()
@@ -217,17 +223,65 @@ class MainWindow(QMainWindow):
         styles.apply_theme(theme)
         app = QApplication.instance()
         app.setStyleSheet(styles.get_stylesheet(theme))
+        styles.apply_titlebar_theme(self, theme)
         self._refresh_all_views()
         
+    def _apply_list_chrome(self):
+        """Ustaw style lewej kolumny listy (nagłówek, szukajka, lista, pusty stan)."""
+        self.list_column.setStyleSheet(
+            f"QWidget#listColumn {{ background-color: {styles.DARK_BG};"
+            f" border-right: 1px solid {styles.HAIRLINE}; }}"
+        )
+        self.header_widget.setStyleSheet(
+            "QWidget#listHeader { background: transparent; border: none; }"
+        )
+        self.list_title.setStyleSheet(
+            f"font-size: 21px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            " background: transparent; border: none;"
+        )
+        self.empty_label.setStyleSheet(
+            f"color: {styles.TEXT_TERTIARY}; font-size: 14px; padding: 40px 16px;"
+            " background: transparent; border: none;"
+        )
+        self.add_btn.setStyleSheet(
+            "QPushButton {"
+            f"    background-color: {styles.COLOR_BLUE};"
+            "    color: white;"
+            "    border: none;"
+            "    border-radius: 8px;"
+            "    padding: 7px 14px;"
+            "    font-size: 13px;"
+            "    font-weight: 600;"
+            "}"
+            "QPushButton:hover { background-color: #0077ea; }"
+        )
+        # Ikona lupy w polu wyszukiwania (re-tint przy zmianie motywu)
+        if getattr(self, "_search_action", None) is not None:
+            self.search_input.removeAction(self._search_action)
+        self._search_action = self.search_input.addAction(
+            QIcon(tinted_pixmap("search", styles.TEXT_TERTIARY, 16)),
+            QLineEdit.LeadingPosition,
+        )
+        # Zaznaczenie: tint akcentu + pasek z lewej (jak EntryRow we wzorcu)
+        self.list_widget.setStyleSheet(f"""
+            QListWidget {{ background: transparent; border: none; outline: none; }}
+            QListWidget::item {{
+                background: transparent; border: none;
+                border-radius: 8px; margin: 1px 8px;
+            }}
+            QListWidget::item:hover {{ background-color: {styles.OVERLAY_HOVER}; }}
+            QListWidget::item:selected {{
+                background-color: {styles.ACCENT_TINT};
+                border-left: 3px solid {styles.COLOR_BLUE};
+            }}
+        """)
+
     def _refresh_all_views(self):
         """Przebuduj interfejsy wszystkich widoków z bieżącym kolorem motywu"""
-        self.header_widget.setStyleSheet(
-            f"background-color: {styles.DARK_BG}; border-bottom: 1px solid {styles.BORDER_COLOR};"
-        )
+        self._apply_list_chrome()
         # Odśwież widok okna
         for view in (self.page_detail, self.page_security,
-                     self.page_add_password, self.page_profile,
-                     self.page_settings):
+                     self.page_profile, self.page_settings):
             if hasattr(view, 'refresh_theme'):
                 view.refresh_theme()
         # Przebuduj karty listy haseł
@@ -253,6 +307,7 @@ class MainWindow(QMainWindow):
     
     def refresh_list(self):
         """Odświeżanie listy haseł na podstawie bieżącego filtru"""
+        self.list_widget.blockSignals(True)
         self.list_widget.clear()
 
         if self.current_filter == FILTER_FAVORITES:
@@ -261,9 +316,33 @@ class MainWindow(QMainWindow):
             passwords = self.password_service.get_weak_passwords()
         else:
             passwords = self.password_service.get_all_passwords()
-        
+
         for entry in passwords:
             self.add_list_item(entry)
+        self.list_widget.blockSignals(False)
+
+        if not passwords:
+            if self.current_filter == FILTER_FAVORITES:
+                self.empty_label.setText(
+                    "No favorites yet.\nTap the star on an entry to add it."
+                )
+            else:
+                self.empty_label.setText(
+                    "No passwords yet.\nClick Add to create your first entry."
+                )
+            self.empty_label.show()
+            self.page_detail.show_empty()
+            return
+
+        self.empty_label.hide()
+        # Przywróć zaznaczenie (lub wybierz pierwszy wpis) - aktualizuje panel
+        row = 0
+        for i in range(self.list_widget.count()):
+            e = self.list_widget.item(i).data(Qt.UserRole)
+            if e and e.get("name") == self.selected_name:
+                row = i
+                break
+        self.list_widget.setCurrentRow(row)
 
     def filter_list(self, text):
         text = text.lower()
@@ -276,136 +355,155 @@ class MainWindow(QMainWindow):
                 item.setHidden(text not in title and text not in subtitle)
 
     def add_list_item(self, entry):
+        """Dodaj kompaktowy wiersz wpisu (EntryRow wg wzorca: awatar + nazwa/login + gwiazdka)."""
         title = entry.get("name", "")
         subtitle = entry.get("email", "")
         color = entry.get("color", "#333333")
         letter = (title[0].upper() if title else "?")
         favorite = bool(entry.get("favorite", False))
         item = QListWidgetItem()
-        
-        # 1. Widget kontenera
-        container_widget = QWidget()
-        container_layout = QVBoxLayout(container_widget)
-        container_layout.setContentsMargins(0, 5, 0, 5) # Odst?p mi?dzy kartami
-        container_layout.setSpacing(0)
-        
-        # 2. Ramka karty
-        card_frame = QFrame()
-        card_frame.setMinimumHeight(80)
-        card_frame.setObjectName("cardFrame")
-        card_frame.setStyleSheet(f"""
-            QFrame#cardFrame {{
-                background-color: {styles.CARD_BG};
-                border-radius: 12px;
-            }}
-            QFrame#cardFrame:hover {{
-                background-color: {styles.HOVER_BG};
-            }}
-        """)
-        
-        # Układ treści wewnątrz karty
-        hbox = QHBoxLayout(card_frame)
-        hbox.setContentsMargins(15, 10, 15, 10)
-        hbox.setSpacing(15)
 
+        row_widget = QWidget()
+        row_widget.setStyleSheet("background: transparent; border: none;")
+        hbox = QHBoxLayout(row_widget)
+        hbox.setContentsMargins(14, 10, 10, 10)
+        hbox.setSpacing(12)
+
+        # Kafelek z literą
         icon_lbl = QLabel(letter)
-        icon_lbl.setFixedSize(48, 48)
+        icon_lbl.setFixedSize(36, 36)
         icon_lbl.setAlignment(Qt.AlignCenter)
         icon_lbl.setStyleSheet(f"""
             background-color: {color};
             color: white;
-            border-radius: 24px;
+            border-radius: 10px;
             font-weight: bold;
-            font-size: 22px;
+            font-size: 16px;
             border: none;
         """)
         hbox.addWidget(icon_lbl)
-        
-        # Treść tekstowa
+
+        # Nazwa + login
         text_container = QWidget()
+        text_container.setStyleSheet("background: transparent; border: none;")
         vbox = QVBoxLayout(text_container)
         vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.setSpacing(4)
+        vbox.setSpacing(2)
         vbox.setAlignment(Qt.AlignVCenter)
-        
+
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet(f"font-size: 24px; font-weight: 600; color: {styles.TEXT_PRIMARY}; border: none; background: transparent;")
-        
+        title_lbl.setStyleSheet(f"font-size: 15px; font-weight: 500; color: {styles.TEXT_PRIMARY}; border: none; background: transparent;")
         subtitle_lbl = QLabel(subtitle)
-        subtitle_lbl.setStyleSheet(f"font-size: 16px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
-        
+        subtitle_lbl.setStyleSheet(f"font-size: 13px; color: {styles.TEXT_SECONDARY}; border: none; background: transparent;")
         vbox.addWidget(title_lbl)
         vbox.addWidget(subtitle_lbl)
-        
-        hbox.addWidget(text_container)
-        hbox.addStretch()
-        
-        # Ikona ulubionego wpisu
+
+        hbox.addWidget(text_container, 1)
+
+        # Klikalna gwiazdka - dodaje/usuwa wpis z ulubionych bez wchodzenia w szczegóły.
+        star_btn = QPushButton()
+        star_btn.setFixedSize(28, 28)
+        star_btn.setCursor(Qt.PointingHandCursor)
+        star_btn.setIconSize(QSize(16, 16))
+        star_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; border-radius: 6px; }"
+            f"QPushButton:hover {{ background-color: {styles.HOVER_BG}; }}"
+        )
         if favorite:
-            fav_lbl = QLabel("⭐")
-            fav_lbl.setStyleSheet("font-size: 16px; background: transparent; border: none;")
-            hbox.addWidget(fav_lbl)
-            
-        # Chevron
-        chevron = QLabel("›")
-        chevron.setStyleSheet(f"color: {styles.TEXT_SECONDARY}; font-size: 24px; font-weight: bold; background: transparent; border: none;")
+            star_btn.setIcon(QIcon(tinted_pixmap("star-filled", styles.COLOR_YELLOW, 16)))
+            star_btn.setToolTip("Remove from favorites")
+        else:
+            star_btn.setIcon(QIcon(tinted_pixmap("star", styles.TEXT_TERTIARY, 16)))
+            star_btn.setToolTip("Add to favorites")
+        star_btn.clicked.connect(lambda checked, n=title: self.on_star_clicked(n))
+        hbox.addWidget(star_btn)
+
+        # Chevron (SVG)
+        chevron = QLabel()
+        chevron.setFixedSize(16, 16)
+        chevron.setPixmap(tinted_pixmap("chevron-right", styles.TEXT_TERTIARY, 16))
+        chevron.setStyleSheet("background: transparent; border: none;")
         hbox.addWidget(chevron)
-        
-        # Dodaj karty do kontenera
-        container_layout.addWidget(card_frame)
-        
-        item.setSizeHint(container_widget.sizeHint())
+
+        item.setSizeHint(row_widget.sizeHint())
         self.list_widget.addItem(item)
-        self.list_widget.setItemWidget(item, container_widget)
+        self.list_widget.setItemWidget(item, row_widget)
 
         item.setData(Qt.UserRole, entry)
 
-    def open_detail_view(self, item):
-        entry = item.data(Qt.UserRole)
+    def on_current_item_changed(self, current, previous):
+        """Aktualizuj panel szczegółów po zmianie zaznaczenia na liście."""
+        if current is None:
+            return
+        entry = current.data(Qt.UserRole)
         if entry:
-            self.navigate_to_detail(entry)
+            self.selected_name = entry.get("name")
+            self.page_detail.update_data(entry)
 
     def navigate_to_detail(self, entry):
-        self.page_detail.update_data(entry)
-        self.stacked_widget.setCurrentIndex(VIEW_INDEX_DETAIL)
-            
+        """Przejdź do widoku listy i pokaż wpis w panelu szczegółów."""
+        self.selected_name = entry.get("name")
+        self.sidebar.handle_click(NAV_INDEX_ALL_PASSWORDS)
+
     def show_list(self):
-        self.stacked_widget.setCurrentIndex(0)
+        self.stacked_widget.setCurrentIndex(VIEW_INDEX_PASSWORD_LIST)
     
     def handle_nav_click(self, index):
         """Obsługa kliknięcia przycisku nawigacji w sidebarze"""
         if index == NAV_INDEX_ALL_PASSWORDS:
             self.current_filter = FILTER_ALL
+            self.list_title.setText("All Passwords")
+            self.add_btn.show()
             self.refresh_list()
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_PASSWORD_LIST)
         elif index == NAV_INDEX_FAVORITES:
             self.current_filter = FILTER_FAVORITES
+            # Ulubione dodaje się tylko gwiazdką w "All Passwords" - tu bez dodawania
+            self.list_title.setText("Favorites")
+            self.add_btn.hide()
             self.refresh_list()
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_PASSWORD_LIST)
         elif index == NAV_INDEX_SECURITY:
-            self.current_filter = FILTER_SECURITY
             self.page_security.update_stats(self.password_service.get_all_passwords())
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_SECURITY)
-        elif index == NAV_INDEX_VAULT:
-            self.stacked_widget.setCurrentIndex(VIEW_INDEX_VAULT)
         elif index == NAV_INDEX_SETTINGS:
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_SETTINGS)
         elif index == NAV_INDEX_PROFILE:
             self.stacked_widget.setCurrentIndex(VIEW_INDEX_PROFILE)
-    
+
     def toggle_favorite(self, name, is_favorite):
-        """Przełączanie status ulubionego hasła przez serwis"""
+        """Przełączanie statusu ulubionego z panelu szczegółów"""
         self.password_service.toggle_favorite(name, is_favorite)
         self.update_badges()
-        
+        # Lista jest widoczna obok panelu - odśwież gwiazdki na wierszach
+        self.refresh_list()
+
+    def on_star_clicked(self, name):
+        """Przełącz status ulubionego z wiersza na liście (All Passwords i Favorites)."""
+        entry = next(
+            (e for e in self.password_service.get_all_passwords() if e.get("name") == name),
+            None,
+        )
+        if entry is None:
+            return
+        new_state = not bool(entry.get("favorite", False))
+        self.password_service.toggle_favorite(name, new_state)
+        self.update_badges()
+        # Odśwież listę: w "Favorites" odznaczony wpis znika, gwiazdki i panel
+        # szczegółów aktualizują się przez ponowne zaznaczenie wiersza
+        self.refresh_list()
+
     def show_add_form(self):
-        self.stacked_widget.setCurrentIndex(6)
-    
+        """Otwórz modal dodawania hasła (wyśrodkowana karta na przyciemnionym tle)."""
+        modal = AddPasswordModal(self)
+        modal.password_created.connect(self.on_password_created)
+        modal.show()
+
     def on_password_created(self, password_data):
         self.password_service.add_password(password_data)
+        self.selected_name = password_data.get("name")
         self.refresh_list()
         self.update_badges()
-        self.show_list()
 
 
 def run_app():
@@ -413,7 +511,14 @@ def run_app():
     # Jednorazowa migracja ze starego jawnego users.json do szyfrowanego sejfu SQLite. Bezpieczna przy każdym starcie.
     migrate_if_needed()
 
+    # Własny AppUserModelID - bez tego pasek zadań grupuje okno pod ikoną
+    # interpretera Pythona zamiast ikony aplikacji
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PasswordManager.App")
+
     app = QApplication(sys.argv)
+    app.setWindowIcon(app_icon())
 
     # Ustawienie fontu na systemowy sans-serif z configu
     from services.settings_service import SettingsService

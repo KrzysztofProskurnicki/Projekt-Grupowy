@@ -2,8 +2,10 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
+from widgets.icons import tinted_pixmap
 from services.authentication_service import AuthenticationService
 from constants import MSG_INCORRECT_PASSWORD, MSG_ENTER_USERNAME
+import styles
 
 
 class LoginDialog(QWidget):
@@ -21,6 +23,8 @@ class LoginDialog(QWidget):
     def init_ui(self):
         self.setWindowTitle("Password Manager")
         self.setFixedSize(450, 530)
+        # Treść dialogu jest na stałe ciemna, więc pasek tytułu też
+        styles.apply_titlebar_theme(self, "dark")
         self.setStyleSheet("""
             QWidget {
                 background-color: #1c1c1e;
@@ -61,8 +65,8 @@ class LoginDialog(QWidget):
         layout.setSpacing(20)
         
         # Ikona/tytuł
-        title_label = QLabel("🔐")
-        title_label.setStyleSheet("font-size: 48px;")
+        title_label = QLabel()
+        title_label.setPixmap(tinted_pixmap("lock", "#0a84ff", 56))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         

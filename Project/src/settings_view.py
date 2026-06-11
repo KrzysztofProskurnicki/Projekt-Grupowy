@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QScrollArea, QSlider,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from widgets.icons import section_header, tinted_icon
 import styles
 
 
@@ -28,7 +29,10 @@ class SettingsView(QWidget):
         self._build_ui()
 
     def _build_ui(self):
-        self.setStyleSheet(f"background-color: {styles.DARK_BG};")
+        # Tło scope'owane selektorem - goły "background-color" kaskadowałby
+        # na wszystkie etykiety (ciemne paski za tekstem na kartach)
+        self.setObjectName("settingsView")
+        self.setStyleSheet(f"QWidget#settingsView {{ background-color: {styles.DARK_BG}; }}")
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -38,14 +42,15 @@ class SettingsView(QWidget):
         )
 
         content = QWidget()
-        content.setStyleSheet(f"background-color: {styles.DARK_BG};")
+        content.setObjectName("settingsContent")
+        content.setStyleSheet(f"QWidget#settingsContent {{ background-color: {styles.DARK_BG}; }}")
         self.layout_main = QVBoxLayout(content)
         self.layout_main.setContentsMargins(40, 40, 40, 40)
         self.layout_main.setSpacing(30)
 
-        title = QLabel("⚙️ Settings")
-        title.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 10px;"
+        title = section_header(
+            "settings", "Settings",
+            styles.COLOR_BLUE, styles.TEXT_PRIMARY, icon_size=26, font_px=28,
         )
         self.layout_main.addWidget(title)
 
@@ -62,15 +67,29 @@ class SettingsView(QWidget):
         outer.addWidget(scroll)
 
     def _create_option_row(self, options, current_value, on_select, group_key):
+        """Zbuduj segmented control (wspólny kontener z pigułkami) wg wzorca."""
         layout = QHBoxLayout()
-        layout.setSpacing(10)
+        layout.setSpacing(0)
+
+        seg = QWidget()
+        seg.setObjectName("segControl")
+        seg.setStyleSheet(
+            f"QWidget#segControl {{ background-color: {styles.DARK_BG};"
+            f" border: 1px solid {styles.HAIRLINE}; border-radius: 8px; }}"
+        )
+        seg_layout = QHBoxLayout(seg)
+        seg_layout.setContentsMargins(3, 3, 3, 3)
+        seg_layout.setSpacing(2)
+
         buttons = []
         for label_text, val in options:
             btn = QPushButton(label_text)
             btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(lambda checked, v=val: on_select(v))
-            layout.addWidget(btn)
+            seg_layout.addWidget(btn)
             buttons.append((val, btn))
+
+        layout.addWidget(seg)
         layout.addStretch()
         self._btn_groups[group_key] = buttons
         self._update_btn_styles(group_key, current_value)
@@ -85,33 +104,37 @@ class SettingsView(QWidget):
                     QPushButton {{
                         background-color: {styles.COLOR_BLUE};
                         color: white;
-                        border-radius: 8px;
-                        padding: 10px 18px;
-                        font-size: 14px;
-                        font-weight: bold;
+                        border-radius: 6px;
+                        padding: 6px 14px;
+                        font-size: 13px;
+                        font-weight: 600;
                         border: none;
                     }}
                 """)
             else:
                 btn.setStyleSheet(f"""
                     QPushButton {{
-                        background-color: {styles.INPUT_BG};
+                        background-color: transparent;
                         color: {styles.TEXT_SECONDARY};
-                        border-radius: 8px;
-                        padding: 10px 18px;
-                        font-size: 14px;
-                        font-weight: 500;
+                        border-radius: 6px;
+                        padding: 6px 14px;
+                        font-size: 13px;
+                        font-weight: 600;
                         border: none;
                     }}
                     QPushButton:hover {{
-                        background-color: {styles.BORDER_COLOR};
+                        background-color: {styles.OVERLAY_HOVER};
                         color: {styles.TEXT_PRIMARY};
                     }}
                 """)
 
     def _card_frame(self) -> QFrame:
         frame = QFrame()
-        frame.setStyleSheet(f"background-color: {styles.CARD_BG}; border-radius: 12px;")
+        frame.setObjectName("settingsCard")
+        frame.setStyleSheet(
+            f"QFrame#settingsCard {{ background-color: {styles.CARD_BG};"
+            f" border: 1px solid {styles.HAIRLINE}; border-radius: 12px; }}"
+        )
         return frame
 
     def _build_auto_lock(self):
@@ -176,57 +199,28 @@ class SettingsView(QWidget):
         desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
         layout.addWidget(desc)
 
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(20)
-
-        self.dark_btn = QPushButton("🌙 Dark")
-        self.light_btn = QPushButton("☀️ Light")
-        for btn in (self.dark_btn, self.light_btn):
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(80)
-
-        self._apply_theme_btn_styles(self._settings.theme)
-
         def set_theme(t):
             self._settings.theme = t
-            self._apply_theme_btn_styles(t)
+            self._update_btn_styles('theme', t)
+            self._update_theme_icons(t)
             self.theme_changed.emit(t)
 
-        self.dark_btn.clicked.connect(lambda: set_theme('dark'))
-        self.light_btn.clicked.connect(lambda: set_theme('light'))
+        options = [("  Dark", 'dark'), ("  Light", 'light')]
+        layout.addLayout(self._create_option_row(options, self._settings.theme, set_theme, 'theme'))
 
-        btn_row.addWidget(self.dark_btn)
-        btn_row.addWidget(self.light_btn)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
+        # Ikony księżyca/słońca w segmentach
+        for val, btn in self._btn_groups['theme']:
+            btn.setIconSize(QSize(16, 16))
+        self._update_theme_icons(self._settings.theme)
+
         self.layout_main.addWidget(card)
 
-    def _apply_theme_btn_styles(self, theme):
-        active_style = f"""
-            QPushButton {{
-                background-color: {styles.HOVER_BG};
-                color: {styles.TEXT_PRIMARY};
-                border-radius: 12px;
-                border: 2px solid {styles.COLOR_BLUE};
-                font-size: 18px;
-                font-weight: bold;
-            }}
-        """
-        inactive_style = f"""
-            QPushButton {{
-                background-color: {styles.DARK_BG};
-                color: {styles.TEXT_SECONDARY};
-                border-radius: 12px;
-                border: 1px solid {styles.BORDER_COLOR};
-                font-size: 18px;
-                font-weight: 500;
-            }}
-            QPushButton:hover {{
-                background-color: {styles.HOVER_BG};
-            }}
-        """
-        self.dark_btn.setStyleSheet(active_style if theme == 'dark' else inactive_style)
-        self.light_btn.setStyleSheet(active_style if theme == 'light' else inactive_style)
+    def _update_theme_icons(self, active_theme):
+        """Przekoloruj ikony segmentów Dark/Light (białe gdy aktywne)."""
+        for val, btn in self._btn_groups.get('theme', []):
+            icon_name = "moon" if val == 'dark' else "sun"
+            color = "white" if val == active_theme else styles.TEXT_SECONDARY
+            btn.setIcon(tinted_icon(icon_name, color, 16))
 
     def _build_font_size(self):
         card = self._card_frame()

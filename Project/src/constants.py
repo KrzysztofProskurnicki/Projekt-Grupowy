@@ -1,20 +1,19 @@
 """Zmienne constant (stałe) aplikacji"""
 
 # Indeksy widgetu stosu
+# (szczegóły wpisu są teraz panelem wewnątrz widoku listy,
+#  a formularz dodawania hasła jest modalem - nie mają własnych indeksów)
 VIEW_INDEX_PASSWORD_LIST = 0
-VIEW_INDEX_DETAIL = 1
-VIEW_INDEX_SECURITY = 2
-VIEW_INDEX_VAULT = 3
-VIEW_INDEX_SETTINGS = 4
-VIEW_INDEX_PROFILE = 5
+VIEW_INDEX_SECURITY = 1
+VIEW_INDEX_SETTINGS = 2
+VIEW_INDEX_PROFILE = 3
 
 # Indeksy nawigacji sidebara
 NAV_INDEX_ALL_PASSWORDS = 0
 NAV_INDEX_FAVORITES = 1
 NAV_INDEX_SECURITY = 2
-NAV_INDEX_VAULT = 3
-NAV_INDEX_SETTINGS = 4
-NAV_INDEX_PROFILE = 5
+NAV_INDEX_SETTINGS = 3
+NAV_INDEX_PROFILE = 4
 
 # Typy filtrów
 FILTER_ALL = 'all'
