@@ -194,6 +194,16 @@ class PasswordService:
                 break
         return True
 
+    def delete_password(self, name: str) -> bool:
+        """Usuń wpis z sejfu i z cache."""
+        if self._user_id is None:
+            return False
+        with vault_repository.session_scope() as session:
+            deleted = vault_repository.delete_entry(session, self._user_id, name)
+        if deleted:
+            self._cache = [e for e in self._cache if e["name"] != name]
+        return deleted
+
     # --- eksport ---
 
     def export_to_csv(self, filepath: str) -> None:

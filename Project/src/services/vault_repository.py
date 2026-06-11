@@ -120,6 +120,15 @@ def update_entry(
     return True
 
 
+def delete_entry(session: Session, user_id: int, name: str) -> bool:
+    """Usuń wpis użytkownika o podanej nazwie. Zwraca True po sukcesie."""
+    entry = find_entry_by_name(session, user_id, name)
+    if entry is None:
+        return False
+    session.delete(entry)
+    return True
+
+
 def set_entry_favorite(session: Session, user_id: int, name: str, favorite: bool) -> None:
     entry = find_entry_by_name(session, user_id, name)
     if entry is not None:

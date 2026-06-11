@@ -1,7 +1,7 @@
 """Główne okno aplikacji - menedżera haseł"""
 import sys
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout,  QLabel, QLineEdit, QListWidget, 
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout,  QLabel, QLineEdit, QListWidget,
                              QListWidgetItem, QPushButton, QStackedWidget,
                              QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent, QSize
@@ -23,6 +23,7 @@ from add_password_view import AddPasswordModal
 from profile_view import ProfileView
 from settings_view import SettingsView
 from widgets.icons import tinted_pixmap, app_icon
+from widgets.confirm_overlay import ConfirmOverlay
 
 
 
@@ -148,7 +149,7 @@ class MainWindow(QMainWindow):
 
         # --- Prawa kolumna: panel szczegółów wpisu ---
         self.page_detail = DetailView(self.show_list, self.toggle_favorite,
-                                      self.show_edit_form)
+                                      self.show_edit_form, self.remove_password)
         list_page_layout.addWidget(self.page_detail, 1)
 
         self._apply_list_chrome()
@@ -530,6 +531,22 @@ class MainWindow(QMainWindow):
     def on_password_created(self, password_data):
         self.password_service.add_password(password_data)
         self.selected_name = password_data.get("name")
+        self.refresh_list()
+        self.update_badges()
+
+    def remove_password(self, name):
+        """Usuń wpis po potwierdzeniu w ciemnej nakładce (zgodnej z motywem)."""
+        overlay = ConfirmOverlay(
+            self,
+            title="Are you sure?",
+            message=f'Delete "{name}" from your vault? This cannot be undone.',
+        )
+        overlay.confirmed.connect(lambda: self._do_remove_password(name))
+        overlay.show()
+
+    def _do_remove_password(self, name):
+        self.password_service.delete_password(name)
+        self.selected_name = None
         self.refresh_list()
         self.update_badges()
 
