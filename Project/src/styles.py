@@ -57,9 +57,25 @@ TEXT_TERTIARY  = _THEMES["dark"]["TEXT_TERTIARY"]
 INPUT_BG       = _THEMES["dark"]["INPUT_BG"]
 ACCENT_TINT    = _THEMES["dark"]["ACCENT_TINT"]
 
+# ===== PALETY AKCENTU =====
+# COLOR_BLUE to historyczna nazwa "koloru akcentu" - cala aplikacja maluje nim
+# aktywne elementy (pigulka nawigacji, przyciski, linki, zaznaczenia).
+# apply_accent() przebindowuje go na wybrana palete.
+_ACCENTS = {
+    "blue":   {"label": "Blue",   "base": "#0a84ff", "hover": "#0077ea"},
+    "indigo": {"label": "Indigo", "base": "#5e5ce6", "hover": "#4b49d6"},
+    "purple": {"label": "Purple", "base": "#bf5af2", "hover": "#aa3ee6"},
+    "pink":   {"label": "Pink",   "base": "#ff375f", "hover": "#e9224b"},
+    "orange": {"label": "Orange", "base": "#ff9f0a", "hover": "#ec8f00"},
+    "green":  {"label": "Green",  "base": "#30d158", "hover": "#28b94e"},
+}
+# Kolejnosc i etykiety do UI ustawien: (klucz, etykieta, kolor)
+ACCENT_CHOICES = [(k, v["label"], v["base"]) for k, v in _ACCENTS.items()]
+ACTIVE_ACCENT = "blue"
+
 # Kolory akcentu
 COLOR_BLUE   = "#0a84ff"
-COLOR_BLUE_HOVER = "#409cff"
+COLOR_BLUE_HOVER = "#0077ea"
 COLOR_RED    = "#ff453a"
 COLOR_GREEN  = "#30d158"
 COLOR_YELLOW = "#ffd60a"
@@ -114,8 +130,56 @@ def _rebuild_derived():
 _rebuild_derived()
 
 
-# Nazwa aktualnie zaaplikowanego motywu (apply_theme nadpisuje)
+# Nazwa aktualnie zaaplikowanego motywu (apply_theme nadpisuje).
+# Zawsze "dark"/"light" - wybor "system" jest rozwiazywany przy aplikowaniu.
 ACTIVE_THEME = "dark"
+
+
+def _system_theme() -> str:
+    """Odczytaj systemowy tryb jasny/ciemny (Windows: rejestr Personalize)."""
+    import sys
+    if sys.platform != "win32":
+        return "dark"
+    try:
+        import winreg
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        ) as key:
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+        return "light" if value else "dark"
+    except OSError:
+        return "dark"
+
+
+def resolve_theme(name: str) -> str:
+    """Zamien wybor uzytkownika ("system"/"dark"/"light") na konkretny motyw."""
+    if name == "system":
+        return _system_theme()
+    return name if name in _THEMES else "dark"
+
+
+def _hex_to_rgb(color: str) -> str:
+    """"#rrggbb" -> "r, g, b" (do skladania rgba w QSS)."""
+    color = color.lstrip("#")
+    return f"{int(color[0:2], 16)}, {int(color[2:4], 16)}, {int(color[4:6], 16)}"
+
+
+def apply_accent(name: str) -> None:
+    """Przebinduj kolor akcentu (COLOR_BLUE i pochodne tinty) na palete *name*."""
+    global COLOR_BLUE, COLOR_BLUE_HOVER, BLUE_SOFT, ACCENT_TINT, ACTIVE_ACCENT
+
+    ACTIVE_ACCENT = name if name in _ACCENTS else "blue"
+    accent = _ACCENTS[ACTIVE_ACCENT]
+    rgb = _hex_to_rgb(accent["base"])
+    alpha = "12%" if ACTIVE_THEME == "light" else "16%"
+
+    COLOR_BLUE = accent["base"]
+    COLOR_BLUE_HOVER = accent["hover"]
+    BLUE_SOFT = f"rgba({rgb}, 16%)"
+    ACCENT_TINT = f"rgba({rgb}, {alpha})"
+
+    _rebuild_derived()
 
 
 # --- Publiczne API ---
@@ -126,8 +190,8 @@ def apply_theme(name: str) -> None:
     global TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, INPUT_BG, ACCENT_TINT
     global ACTIVE_THEME
 
-    ACTIVE_THEME = name if name in _THEMES else "dark"
-    palette = _THEMES.get(name, _THEMES["dark"])
+    ACTIVE_THEME = resolve_theme(name)
+    palette = _THEMES[ACTIVE_THEME]
     DARK_BG        = palette["DARK_BG"]
     SIDEBAR_BG     = palette["SIDEBAR_BG"]
     CARD_BG        = palette["CARD_BG"]
@@ -143,7 +207,8 @@ def apply_theme(name: str) -> None:
     INPUT_BG       = palette["INPUT_BG"]
     ACCENT_TINT    = palette["ACCENT_TINT"]
 
-    _rebuild_derived()
+    # Ponownie nałóż wybrany akcent (tinty zależą od motywu)
+    apply_accent(ACTIVE_ACCENT)
 
 
 def apply_titlebar_theme(window, theme: str = None) -> None:
@@ -156,7 +221,8 @@ def apply_titlebar_theme(window, theme: str = None) -> None:
     if sys.platform != "win32":
         return
     import ctypes
-    dark = ctypes.c_int(1 if (theme or ACTIVE_THEME) == "dark" else 0)
+    effective = resolve_theme(theme) if theme else ACTIVE_THEME
+    dark = ctypes.c_int(1 if effective == "dark" else 0)
     try:
         hwnd = int(window.winId())
         for attr in (20, 19):
@@ -171,8 +237,8 @@ def apply_titlebar_theme(window, theme: str = None) -> None:
 
 def get_stylesheet(theme: str) -> str:
     """Zwróć arkusz stylów na poziomie QApplication dla danego *theme*."""
-    p = _THEMES.get(theme, _THEMES["dark"])
-    accent = "#007aff" if theme == "light" else "#0a84ff"
+    p = _THEMES[resolve_theme(theme)]
+    accent = _ACCENTS[ACTIVE_ACCENT]["base"]
     return f"""
     QMainWindow {{
         background-color: {p["DARK_BG"]};

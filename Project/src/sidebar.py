@@ -16,6 +16,15 @@ class Sidebar(QFrame):
         super().__init__()
         self.setObjectName("Sidebar")
         self._username = username
+        self._active_index = 0
+        self._badge_counts = {}
+        self.init_ui()
+
+    def refresh_theme(self):
+        """Przebuduj sidebar z bieżącymi kolorami motywu/akcentu (bez utraty stanu)."""
+        old_layout = self.layout()
+        if old_layout:
+            QWidget().setLayout(old_layout)
         self.init_ui()
 
     def init_ui(self):
@@ -67,11 +76,15 @@ class Sidebar(QFrame):
 
         self.nav_buttons = []
         for i, (text, icon, count) in enumerate(self.buttons_config):
-            is_active = (i == 0)
+            is_active = (i == self._active_index)
             btn = NavButtonWidget(text, icon, count, is_active)
             btn.btn.clicked.connect(lambda checked, idx=i: self.handle_click(idx))
             self.nav_layout.addWidget(btn)
             self.nav_buttons.append(btn)
+
+        # Przywróć liczniki po przebudowie (refresh_theme)
+        for idx, count in self._badge_counts.items():
+            self.nav_buttons[idx].badge.setText(str(count) if count > 0 else "")
 
         layout.addWidget(nav_container)
         layout.addStretch()
@@ -145,6 +158,7 @@ class Sidebar(QFrame):
         layout.addWidget(logout_btn)
 
     def handle_click(self, index):
+        self._active_index = index
         for i, nav_widget in enumerate(self.nav_buttons):
             if i == index:
                 nav_widget.btn.setChecked(True)
@@ -162,4 +176,5 @@ class Sidebar(QFrame):
     def update_badge(self, index, count):
         """Zaktualizuj licznik odznaki dla konkretnego przycisku"""
         if 0 <= index < len(self.nav_buttons):
+            self._badge_counts[index] = count
             self.nav_buttons[index].badge.setText(str(count) if count > 0 else "")

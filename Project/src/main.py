@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
         self.page_settings = SettingsView(self.settings_service)
         self.page_settings.settings_changed.connect(self._on_settings_changed)
         self.page_settings.theme_changed.connect(self._on_theme_changed)
+        self.page_settings.accent_changed.connect(self._on_accent_changed)
         self.page_settings.font_size_changed.connect(self._on_font_size_changed)
         self.stacked_widget.addWidget(self.page_settings)  # VIEW_INDEX_SETTINGS
 
@@ -225,6 +226,12 @@ class MainWindow(QMainWindow):
         app.setStyleSheet(styles.get_stylesheet(theme))
         styles.apply_titlebar_theme(self, theme)
         self._refresh_all_views()
+
+    def _on_accent_changed(self, accent):
+        styles.apply_accent(accent)
+        app = QApplication.instance()
+        app.setStyleSheet(styles.get_stylesheet(self.settings_service.theme))
+        self._refresh_all_views()
         
     def _apply_list_chrome(self):
         """Ustaw style lewej kolumny listy (nagłówek, szukajka, lista, pusty stan)."""
@@ -253,7 +260,7 @@ class MainWindow(QMainWindow):
             "    font-size: 13px;"
             "    font-weight: 600;"
             "}"
-            "QPushButton:hover { background-color: #0077ea; }"
+            f"QPushButton:hover {{ background-color: {styles.COLOR_BLUE_HOVER}; }}"
         )
         # Ikona lupy w polu wyszukiwania (re-tint przy zmianie motywu)
         if getattr(self, "_search_action", None) is not None:
@@ -278,6 +285,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_all_views(self):
         """Przebuduj interfejsy wszystkich widoków z bieżącym kolorem motywu"""
+        self.sidebar.refresh_theme()
         self._apply_list_chrome()
         # Odśwież widok okna
         for view in (self.page_detail, self.page_security,
@@ -526,8 +534,9 @@ def run_app():
     font = QFont("Segoe UI", settings.font_size) if sys.platform == "win32" else QFont("Helvetica Neue", settings.font_size)
     app.setFont(font)
 
-    # Aplikowanie stylów z configu
+    # Aplikowanie stylów z configu (motyw + wybrany akcent)
     styles.apply_theme(settings.theme)
+    styles.apply_accent(settings.accent)
     app.setStyleSheet(styles.get_stylesheet(settings.theme))
     
     while True:

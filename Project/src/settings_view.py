@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QFrame, QScrollArea, QSlider,
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QIcon
 from widgets.icons import section_header, tinted_icon
 import styles
 
@@ -13,6 +14,7 @@ class SettingsView(QWidget):
 
     settings_changed = pyqtSignal(str, object)
     theme_changed = pyqtSignal(str)
+    accent_changed = pyqtSignal(str)
     font_size_changed = pyqtSignal(int)
 
     def __init__(self, settings_service):
@@ -57,6 +59,7 @@ class SettingsView(QWidget):
         self._build_auto_lock()
         self._build_clipboard_clear()
         self._build_theme()
+        self._build_accent()
         self._build_font_size()
 
         self.layout_main.addStretch()
@@ -205,22 +208,72 @@ class SettingsView(QWidget):
             self._update_theme_icons(t)
             self.theme_changed.emit(t)
 
-        options = [("  Dark", 'dark'), ("  Light", 'light')]
+        options = [("  System", 'system'), ("  Dark", 'dark'), ("  Light", 'light')]
         layout.addLayout(self._create_option_row(options, self._settings.theme, set_theme, 'theme'))
 
-        # Ikony księżyca/słońca w segmentach
+        # Ikony monitora/księżyca/słońca w segmentach
         for val, btn in self._btn_groups['theme']:
             btn.setIconSize(QSize(16, 16))
         self._update_theme_icons(self._settings.theme)
 
         self.layout_main.addWidget(card)
 
+    _THEME_ICONS = {'system': 'monitor', 'dark': 'moon', 'light': 'sun'}
+
     def _update_theme_icons(self, active_theme):
-        """Przekoloruj ikony segmentów Dark/Light (białe gdy aktywne)."""
+        """Przekoloruj ikony segmentów System/Dark/Light (białe gdy aktywne)."""
         for val, btn in self._btn_groups.get('theme', []):
-            icon_name = "moon" if val == 'dark' else "sun"
+            icon_name = self._THEME_ICONS.get(val, 'sun')
             color = "white" if val == active_theme else styles.TEXT_SECONDARY
             btn.setIcon(tinted_icon(icon_name, color, 16))
+
+    def _build_accent(self):
+        """Karta wyboru koloru akcentu - okrągłe próbki palet."""
+        card = self._card_frame()
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(16)
+        head = QLabel("Accent Color")
+        head.setStyleSheet(styles.SECTION_TITLE_STYLE)
+        layout.addWidget(head)
+        desc = QLabel("Pick the highlight color used for buttons, links and selections.")
+        desc.setStyleSheet(f"font-size: 14px; color: {styles.TEXT_SECONDARY}; border: none;")
+        layout.addWidget(desc)
+
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        self._accent_buttons = []
+
+        def on_select(val):
+            self._settings.accent = val
+            self._update_accent_styles(val)
+            self.accent_changed.emit(val)
+
+        for key, label, color in styles.ACCENT_CHOICES:
+            btn = QPushButton()
+            btn.setFixedSize(34, 34)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setToolTip(label)
+            btn.setIconSize(QSize(16, 16))
+            btn.clicked.connect(lambda checked, v=key: on_select(v))
+            row.addWidget(btn)
+            self._accent_buttons.append((key, color, btn))
+        row.addStretch()
+        layout.addLayout(row)
+
+        self._update_accent_styles(self._settings.accent)
+        self.layout_main.addWidget(card)
+
+    def _update_accent_styles(self, active_accent):
+        """Obrysuj aktywną próbkę i pokaż na niej znacznik wyboru."""
+        for key, color, btn in self._accent_buttons:
+            active = (key == active_accent)
+            ring = styles.TEXT_PRIMARY if active else "transparent"
+            btn.setStyleSheet(
+                f"QPushButton {{ background-color: {color}; border-radius: 17px;"
+                f" border: 3px solid {ring}; }}"
+            )
+            btn.setIcon(tinted_icon("check", "white", 16) if active else QIcon())
 
     def _build_font_size(self):
         card = self._card_frame()

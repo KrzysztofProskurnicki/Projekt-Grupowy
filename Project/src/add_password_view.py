@@ -162,7 +162,7 @@ class AddPasswordModal(QWidget):
                 font-weight: 600;
             }}
             QPushButton:hover {{
-                background-color: #0077ea;
+                background-color: {styles.COLOR_BLUE_HOVER};
             }}
         """)
         create_btn.clicked.connect(self._on_create)
