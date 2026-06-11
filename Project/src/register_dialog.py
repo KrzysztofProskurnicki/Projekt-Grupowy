@@ -2,9 +2,11 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
+from widgets.icons import tinted_pixmap
 from services.authentication_service import AuthenticationService
-from constants import (MSG_PASSWORDS_NOT_MATCH, MSG_USERNAME_TAKEN, 
+from constants import (MSG_PASSWORDS_NOT_MATCH, MSG_USERNAME_TAKEN,
                        MSG_FILL_ALL_FIELDS, MSG_ACCOUNT_CREATED)
+import styles
 
 
 class RegisterDialog(QWidget):
@@ -19,6 +21,8 @@ class RegisterDialog(QWidget):
         """Zainicjuj interfejs formularza rejestracji"""
         self.setWindowTitle("Password Manager - Create Account")
         self.setFixedSize(450, 560)
+        # Treść dialogu jest na stałe ciemna, więc pasek tytułu też
+        styles.apply_titlebar_theme(self, "dark")
         self.setStyleSheet("""
             QWidget {
                 background-color: #1c1c1e;
@@ -44,20 +48,20 @@ class RegisterDialog(QWidget):
         layout.setSpacing(20)
         
         # Ikona
-        icon_label = QLabel("👤")
-        icon_label.setStyleSheet("font-size: 48px;")
-        icon_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(icon_label)
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(tinted_pixmap("user", "#0a84ff", 56))
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon_lbl)
         
         # Tytuł
         title_label = QLabel("Create Account")
-        title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #f5f5f7;")
+        title_label.setStyleSheet(f"font-size: {styles.font_px(24)}px; font-weight: bold; color: #f5f5f7;")
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
         # Podtytuł
         subtitle = QLabel("Fill in the details to create your profile")
-        subtitle.setStyleSheet("font-size: 14px; color: #98989d;")
+        subtitle.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: #98989d;")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
         
@@ -83,7 +87,7 @@ class RegisterDialog(QWidget):
         
         # Etykieta statusu (błędy i komunikaty powodzenia)
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+        self.status_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
         self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
         
@@ -149,24 +153,24 @@ class RegisterDialog(QWidget):
         
         # Sprawdza, czy wszystkie pola zostały wypełnione
         if not username or not password or not confirm_password:
-            self.status_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+            self.status_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
             self.status_label.setText(MSG_FILL_ALL_FIELDS)
             return
         
         # Sprawdza zgodność hasła
         if password != confirm_password:
-            self.status_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+            self.status_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
             self.status_label.setText(MSG_PASSWORDS_NOT_MATCH)
             self.confirm_password_input.clear()
             return
 
         success = self.auth_service.register(username, password)
         if not success:
-            self.status_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+            self.status_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
             self.status_label.setText(MSG_USERNAME_TAKEN)
             return
 
-        self.status_label.setStyleSheet("color: #30d158; font-size: 14px;")
+        self.status_label.setStyleSheet(f"color: #30d158; font-size: {styles.font_px(14)}px;")
         self.status_label.setText(MSG_ACCOUNT_CREATED)
 
         self.username_input.clear()

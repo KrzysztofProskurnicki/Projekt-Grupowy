@@ -8,15 +8,17 @@ _SETTINGS_FILE = os.path.join(_PROJECT_DIR, 'config', 'settings.json')
 _DEFAULTS = {
     'auto_lock_minutes': 0,
     'clipboard_clear_seconds': 0,
-    'theme': 'dark',
+    'theme': 'system',
+    'accent': 'blue',
     'font_size': 14,
 }
 
 _VALID_AUTO_LOCK = (0, 1, 5, 10, 15, 30)
 _VALID_CLIPBOARD_CLEAR = (0, 10, 30, 60, 120)
-_VALID_THEMES = ('dark', 'light')
+_VALID_THEMES = ('system', 'dark', 'light')
+_VALID_ACCENTS = ('blue', 'indigo', 'purple', 'pink', 'orange', 'green')
 _FONT_SIZE_MIN = 10
-_FONT_SIZE_MAX = 22
+_FONT_SIZE_MAX = 18
 
 
 class SettingsService:
@@ -98,6 +100,14 @@ class SettingsService:
         self.set('theme', value)
 
     @property
+    def accent(self) -> str:
+        return self.get('accent')
+
+    @accent.setter
+    def accent(self, value: str) -> None:
+        self.set('accent', value)
+
+    @property
     def font_size(self) -> int:
         return self.get('font_size')
 
@@ -127,6 +137,12 @@ class SettingsService:
             if value not in _VALID_THEMES:
                 raise ValueError(
                     f"theme must be one of {_VALID_THEMES}, got {value!r}"
+                )
+        elif key == 'accent':
+            value = str(value)
+            if value not in _VALID_ACCENTS:
+                raise ValueError(
+                    f"accent must be one of {_VALID_ACCENTS}, got {value!r}"
                 )
         elif key == 'font_size':
             value = int(value)

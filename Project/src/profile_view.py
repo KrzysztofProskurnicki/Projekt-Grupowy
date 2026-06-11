@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
 import styles
+from widgets.icons import section_header, icon_label
 from constants import (
     MSG_PASSWORD_CHANGED, MSG_EXPORT_SUCCESS,
     MSG_WRONG_CURRENT_PASSWORD, MSG_NEW_PASSWORDS_NOT_MATCH,
@@ -91,9 +92,9 @@ class ProfileView(QWidget):
         self.layout_main.setSpacing(30)
 
         # Tytuł strony
-        title = QLabel("👤 Profile")
-        title.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {styles.TEXT_PRIMARY}; margin-bottom: 10px;"
+        title = section_header(
+            "user", "Profile",
+            styles.COLOR_BLUE, styles.TEXT_PRIMARY, icon_size=26, font_px=28,
         )
         self.layout_main.addWidget(title)
 
@@ -121,14 +122,15 @@ class ProfileView(QWidget):
 
         letter = self._username[0].upper() if self._username else "?"
         avatar = QLabel(letter)
-        avatar.setFixedSize(80, 80)
+        avatar.setFixedSize(64, 64)
         avatar.setAlignment(Qt.AlignCenter)
         avatar.setStyleSheet(f"""
             background-color: {styles.COLOR_BLUE};
             color: white;
-            border-radius: 40px;
-            font-size: 38px;
+            border-radius: 32px;
+            font-size: {styles.font_px(28)}px;
             font-weight: bold;
+            border: none;
         """)
         top.addWidget(avatar)
 
@@ -137,7 +139,7 @@ class ProfileView(QWidget):
 
         name_lbl = QLabel(self._username)
         name_lbl.setStyleSheet(
-            f"font-size: 26px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
+            f"font-size: {styles.font_px(21)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         info_box.addWidget(name_lbl)
@@ -146,7 +148,7 @@ class ProfileView(QWidget):
         since_text = created.strftime("%B %d, %Y") if created else "Unknown"
         since_lbl = QLabel(f"Member since {since_text}")
         since_lbl.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         info_box.addWidget(since_lbl)
@@ -156,7 +158,7 @@ class ProfileView(QWidget):
 
         divider = QFrame()
         divider.setFixedHeight(1)
-        divider.setStyleSheet(f"background-color: {styles.BORDER_COLOR};")
+        divider.setStyleSheet(f"background-color: {styles.HAIRLINE}; border: none;")
         layout.addWidget(divider)
 
         stats_row = QHBoxLayout()
@@ -165,13 +167,20 @@ class ProfileView(QWidget):
         all_passwords = self._password_service.get_all_passwords()
         total = len(all_passwords)
         favs = sum(1 for p in all_passwords if p.get("favorite"))
-        weak = sum(1 for p in all_passwords if p.get("weak_password"))
-        strong = total - weak
+        levels = [
+            p.get("strength") if p.get("strength") in ("weak", "medium", "strong")
+            else ("weak" if p.get("weak_password") else "strong")
+            for p in all_passwords
+        ]
+        weak = levels.count("weak")
+        medium = levels.count("medium")
+        strong = levels.count("strong")
 
-        self._add_stat(stats_row, "🔑", "Total", str(total), styles.COLOR_BLUE)
-        self._add_stat(stats_row, "⭐", "Favorites", str(favs), styles.COLOR_YELLOW)
-        self._add_stat(stats_row, "✓", "Strong", str(strong), styles.COLOR_GREEN)
-        self._add_stat(stats_row, "⚠️", "Weak", str(weak), styles.COLOR_RED)
+        self._add_stat(stats_row, "key-round", "Total", str(total), styles.COLOR_BLUE)
+        self._add_stat(stats_row, "star", "Favorites", str(favs), styles.COLOR_YELLOW)
+        self._add_stat(stats_row, "circle-check", "Strong", str(strong), styles.COLOR_GREEN)
+        self._add_stat(stats_row, "shield-half", "Medium", str(medium), styles.COLOR_YELLOW)
+        self._add_stat(stats_row, "triangle-alert", "Weak", str(weak), styles.COLOR_RED)
 
         layout.addLayout(stats_row)
         self.layout_main.addWidget(card)
@@ -181,11 +190,11 @@ class ProfileView(QWidget):
         box.setAlignment(Qt.AlignCenter)
         val_row = QHBoxLayout()
         val_row.setAlignment(Qt.AlignCenter)
-        ico = QLabel(icon)
-        ico.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+        val_row.setSpacing(6)
+        ico = icon_label(icon, color, 17)
         val_lbl = QLabel(value)
         val_lbl.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {color};"
+            f"font-size: {styles.font_px(22)}px; font-weight: bold; color: {styles.TEXT_PRIMARY};"
             " background: transparent; border: none;"
         )
         val_row.addWidget(ico)
@@ -195,7 +204,7 @@ class ProfileView(QWidget):
         lbl = QLabel(label)
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(
-            f"font-size: 13px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         box.addWidget(lbl)
@@ -208,17 +217,19 @@ class ProfileView(QWidget):
         layout.setContentsMargins(28, 28, 28, 28)
         layout.setSpacing(16)
 
-        head = QLabel("📁 Export Vault")
-        head.setStyleSheet(styles.SECTION_TITLE_STYLE)
+        head = section_header(
+            "download", "Export Vault",
+            styles.TEXT_SECONDARY, styles.TEXT_PRIMARY, icon_size=18, font_px=17,
+        )
         layout.addWidget(head)
 
         desc = QLabel(
             "Export all your saved passwords to a CSV file.\n"
-            "The exported file will contain unencrypted data — store it safely."
+            "The exported file will contain unencrypted data - store it safely."
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
@@ -226,7 +237,21 @@ class ProfileView(QWidget):
         btn_row = QHBoxLayout()
         export_btn = QPushButton("Export to CSV")
         export_btn.setCursor(Qt.PointingHandCursor)
-        export_btn.setStyleSheet(self._action_btn_style(styles.COLOR_BLUE))
+        # Przycisk drugorzędny (variant="secondary" we wzorcu)
+        export_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {styles.RAISED_BG};
+                color: {styles.TEXT_PRIMARY};
+                border-radius: 8px;
+                padding: 10px 18px;
+                font-size: {styles.font_px(14)}px;
+                font-weight: 600;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {styles.HOVER_BG};
+            }}
+        """)
         export_btn.clicked.connect(self._on_export)
         btn_row.addWidget(export_btn)
         btn_row.addStretch()
@@ -252,31 +277,48 @@ class ProfileView(QWidget):
         layout.setContentsMargins(28, 28, 28, 28)
         layout.setSpacing(16)
 
-        head = QLabel("🔒 Change Master Password")
-        head.setStyleSheet(styles.SECTION_TITLE_STYLE)
+        head = section_header(
+            "lock", "Change Master Password",
+            styles.TEXT_SECONDARY, styles.TEXT_PRIMARY, icon_size=18, font_px=17,
+        )
         layout.addWidget(head)
 
         desc = QLabel(
             "All vault entries will be re-encrypted with the new password.\n"
-            "Make sure to remember your new password — it cannot be recovered."
+            "Make sure to remember your new password - it cannot be recovered."
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
 
+        # Siatka jak we wzorcu: Current na całą szerokość, New + Confirm obok
+        # siebie, całość ograniczona do 560px
+        fields_box = QWidget()
+        fields_box.setMaximumWidth(560)
+        fields_box.setStyleSheet("background: transparent; border: none;")
+        fields_layout = QVBoxLayout(fields_box)
+        fields_layout.setContentsMargins(0, 0, 0, 0)
+        fields_layout.setSpacing(14)
+
         self.current_pw = self._pw_field("Current Password")
-        layout.addWidget(self.current_pw)
+        fields_layout.addWidget(self.current_pw)
+
+        pw_row = QHBoxLayout()
+        pw_row.setSpacing(14)
         self.new_pw = self._pw_field("New Password")
-        layout.addWidget(self.new_pw)
         self.confirm_pw = self._pw_field("Confirm New Password")
-        layout.addWidget(self.confirm_pw)
+        pw_row.addWidget(self.new_pw)
+        pw_row.addWidget(self.confirm_pw)
+        fields_layout.addLayout(pw_row)
+
+        layout.addWidget(fields_box)
 
         self.pw_status = QLabel("")
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.pw_status.setAlignment(Qt.AlignCenter)
@@ -295,7 +337,7 @@ class ProfileView(QWidget):
                 border-radius: 6px;
                 text-align: center;
                 color: {styles.TEXT_PRIMARY};
-                font-size: 12px;
+                font-size: {styles.font_px(12)}px;
                 font-weight: 600;
             }}
             QProgressBar::chunk {{
@@ -324,21 +366,21 @@ class ProfileView(QWidget):
         if not old or not new or not confirm:
             self.pw_status.setText(MSG_FILL_ALL_FIELDS)
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
         if new != confirm:
             self.pw_status.setText(MSG_NEW_PASSWORDS_NOT_MATCH)
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
         if new == old:
             self.pw_status.setText("New password must be different from current.")
             self.pw_status.setStyleSheet(
-                f"color: {styles.COLOR_RED}; font-size: 14px;"
+                f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
                 " background: transparent; border: none;"
             )
             return
@@ -363,7 +405,7 @@ class ProfileView(QWidget):
         self.pw_progress.setValue(100)
         self.pw_status.setText(MSG_PASSWORD_CHANGED)
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_GREEN}; font-size: 14px;"
+            f"color: {styles.COLOR_GREEN}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.current_pw.clear()
@@ -377,7 +419,7 @@ class ProfileView(QWidget):
     def _on_pw_error(self, msg):
         self.pw_status.setText(msg)
         self.pw_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         self.change_pw_btn.setEnabled(True)
@@ -396,10 +438,9 @@ class ProfileView(QWidget):
         layout.setContentsMargins(28, 28, 28, 28)
         layout.setSpacing(16)
 
-        head = QLabel("⚠️ Danger Zone")
-        head.setStyleSheet(
-            f"font-size: 16px; font-weight: bold; color: {styles.COLOR_RED};"
-            " background: transparent; border: none;"
+        head = section_header(
+            "triangle-alert", "Danger Zone",
+            styles.COLOR_RED, styles.COLOR_RED, icon_size=18, font_px=17,
         )
         layout.addWidget(head)
 
@@ -409,14 +450,14 @@ class ProfileView(QWidget):
         )
         desc.setWordWrap(True)
         desc.setStyleSheet(
-            f"font-size: 14px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(14)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(desc)
 
         confirm_lbl = QLabel(f'Type "{self._username}" to confirm:')
         confirm_lbl.setStyleSheet(
-            f"font-size: 13px; color: {styles.TEXT_SECONDARY};"
+            f"font-size: {styles.font_px(13)}px; color: {styles.TEXT_SECONDARY};"
             " background: transparent; border: none;"
         )
         layout.addWidget(confirm_lbl)
@@ -431,7 +472,7 @@ class ProfileView(QWidget):
                 border-radius: 8px;
                 padding: 10px;
                 border: 1px solid {styles.BORDER_COLOR};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {styles.COLOR_RED};
@@ -441,7 +482,7 @@ class ProfileView(QWidget):
 
         self.delete_status = QLabel("")
         self.delete_status.setStyleSheet(
-            f"color: {styles.COLOR_RED}; font-size: 14px;"
+            f"color: {styles.COLOR_RED}; font-size: {styles.font_px(14)}px;"
             " background: transparent; border: none;"
         )
         layout.addWidget(self.delete_status)
@@ -455,7 +496,7 @@ class ProfileView(QWidget):
                 color: white;
                 border-radius: 8px;
                 padding: 12px 24px;
-                font-size: 16px;
+                font-size: {styles.font_px(16)}px;
                 font-weight: 600;
                 border: none;
             }}
@@ -494,7 +535,11 @@ class ProfileView(QWidget):
     # --- Pomocniki --
     def _card_frame(self) -> QFrame:
         frame = QFrame()
-        frame.setStyleSheet(f"background-color: {styles.CARD_BG}; border-radius: 12px;")
+        frame.setObjectName("profileCard")
+        frame.setStyleSheet(
+            f"QFrame#profileCard {{ background-color: {styles.CARD_BG};"
+            f" border: 1px solid {styles.HAIRLINE}; border-radius: 12px; }}"
+        )
         return frame
 
     def _pw_field(self, placeholder: str) -> QLineEdit:
@@ -509,7 +554,7 @@ class ProfileView(QWidget):
                 border-radius: 8px;
                 padding: 10px;
                 border: 1px solid {styles.BORDER_COLOR};
-                font-size: 14px;
+                font-size: {styles.font_px(14)}px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {styles.COLOR_BLUE};
@@ -524,15 +569,12 @@ class ProfileView(QWidget):
                 background-color: {color};
                 color: white;
                 border-radius: 8px;
-                padding: 12px 24px;
-                font-size: 16px;
+                padding: 10px 18px;
+                font-size: {styles.font_px(14)}px;
                 font-weight: 600;
                 border: none;
             }}
             QPushButton:hover {{
-                opacity: 0.9;
-            }}
-            QPushButton:pressed {{
-                opacity: 0.7;
+                background-color: #0077ea;
             }}
         """

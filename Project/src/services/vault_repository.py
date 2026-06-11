@@ -95,6 +95,31 @@ def add_entry(
     return entry
 
 
+def update_entry(
+    session: Session,
+    user_id: int,
+    original_name: str,
+    *,
+    name: str,
+    color: str,
+    weak_password: bool,
+    enc_email: Optional[bytes],
+    enc_password: Optional[bytes],
+    enc_notes: Optional[bytes],
+) -> bool:
+    """Zaktualizuj wpis (nazwa + pola szyfrowane). Zwraca True po sukcesie."""
+    entry = find_entry_by_name(session, user_id, original_name)
+    if entry is None:
+        return False
+    entry.name = name
+    entry.color = color
+    entry.weak_password = weak_password
+    entry.enc_email = enc_email
+    entry.enc_password = enc_password
+    entry.enc_notes = enc_notes
+    return True
+
+
 def set_entry_favorite(session: Session, user_id: int, name: str, favorite: bool) -> None:
     entry = find_entry_by_name(session, user_id, name)
     if entry is not None:

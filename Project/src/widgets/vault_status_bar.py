@@ -1,105 +1,86 @@
-"""Widget paska statusu sejfu - poziomy skumulowany pasek kategorii haseł."""
+"""Widget paska statusu sejfu - smukły zaokrąglony pasek Strong/Weak (wg wzorca)."""
 
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPainter, QFont
-from styles import COLOR_GREEN, COLOR_RED, COLOR_YELLOW, COLOR_BLUE
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QColor, QFont, QPainter, QPainterPath
 import styles
 
 
 class VaultStatusBar(QWidget):
-    
-    def __init__(self, parent=None):
+    """Pasek 12px z udziałem haseł silnych/słabych i legendą z kropkami."""
 
+    BAR_H = 12
+    GAP = 2  # przerwa między segmentami
+
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(100)
-        self.stats = {"strong": 0, "weak": 0, "reused": 0, "old": 0, "total": 1}
-        
-    def set_stats(self, strong: int, weak: int, total: int):
+        self.setMinimumHeight(56)
+        self.stats = {"strong": 0, "medium": 0, "weak": 0, "total": 1}
+
+    def set_stats(self, strong: int, medium: int, weak: int, total: int):
         """Ustaw statystyki paska.
-        
+
         Argumenty:
             strong: Liczba silnych haseł
+            medium: Liczba średnich haseł
             weak: Liczba słabych haseł
             total: Liczba haseł.
         """
-        # Logika demonstracyjna dla dodatkowych segmentów
-        reused = int(weak * 0.3)
-        old = int(weak * 0.2)
-        
-        self.stats = {
-            "strong": strong,
-            "weak": weak - reused - old,
-            "reused": reused,
-            "old": old,
-            "total": max(1, total)
-        }
+        self.stats = {"strong": strong, "medium": medium, "weak": weak,
+                      "total": max(1, total)}
         self.update()
-        
+
     def paintEvent(self, event):
-        """Narysuj pasek statusu sejfu"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
-        rect = self.rect()
-        bar_h = 24
-        y_bar = 20
-        w_total = rect.width()
-        
-        # --- 1. Ścieżka tła ---
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor(styles.HOVER_BG))
-        painter.drawRoundedRect(0, y_bar, w_total, bar_h, 12, 12)
-        
-        # Oblicz szerokości
-        total = self.stats["total"]
-        if total == 0: 
-            return
 
-        # Dane segment?w: (wartości, kolor, etykieta)
+        w_total = self.width()
+        y_bar = 6
+        radius = self.BAR_H / 2
+
+        # Przytnij wszystko do zaokrąglonego kształtu paska
+        clip = QPainterPath()
+        clip.addRoundedRect(QRectF(0, y_bar, w_total, self.BAR_H), radius, radius)
+
+        painter.save()
+        painter.setClipPath(clip)
+        painter.setPen(Qt.NoPen)
+
+        # Tor
+        painter.setBrush(QColor(styles.RAISED_BG))
+        painter.drawRect(QRectF(0, y_bar, w_total, self.BAR_H))
+
+        total = self.stats["total"]
         segments = [
-            (self.stats["strong"], QColor(COLOR_GREEN), "Strong"),
-            (self.stats["weak"], QColor(COLOR_RED), "Weak"),
-            (self.stats["reused"], QColor(COLOR_YELLOW), "Reused"),
-            (self.stats["old"], QColor(COLOR_BLUE), "Old")
+            (self.stats["strong"], QColor(styles.COLOR_GREEN), "Strong"),
+            (self.stats["medium"], QColor(styles.COLOR_YELLOW), "Medium"),
+            (self.stats["weak"], QColor(styles.COLOR_RED), "Weak"),
         ]
-        
-        current_x = 0
-        
-        # --- 2. Rysowanie segmentu ---
-        for val, color, label in segments:
+
+        x = 0.0
+        for val, color, _label in segments:
             if val > 0:
                 seg_w = (val / total) * w_total
-                
-                # Rysuje poświatę (efekt neonowy)
-                color_glow = QColor(color)
-                color_glow.setAlpha(40)
-                painter.setBrush(color_glow)
-                painter.drawRoundedRect(int(current_x), y_bar - 2, int(seg_w), bar_h + 4, 4, 4)
-                
-                # Rysuje główny segment paska
                 painter.setBrush(color)
-                draw_w = max(2, seg_w - 2)
-                painter.drawRoundedRect(int(current_x), y_bar, int(draw_w), bar_h, 4, 4)
-                
-                current_x += seg_w
-        
-        # --- 3. Legenda ---
-        y_leg = y_bar + bar_h + 25
+                painter.drawRect(QRectF(x, y_bar, max(0.0, seg_w - self.GAP), self.BAR_H))
+                x += seg_w
+        painter.restore()
+
+        # Legenda: kropka + "Strong (75%)"
+        y_leg = y_bar + self.BAR_H + 24
         x_leg = 0
-        painter.setFont(QFont("Segoe UI", 12))
-        
+        font = QFont("Segoe UI")
+        font.setPixelSize(styles.font_px(13))
+        painter.setFont(font)
+
         for val, color, label in segments:
-            if val >= 0:
-                # Kropka
-                painter.setBrush(color)
-                painter.drawEllipse(int(x_leg), int(y_leg) - 8, 8, 8)
-                
-                # Tekst
-                label_full = f"{label} ({int((val/total)*100)}%)"
-                painter.setPen(QColor(styles.TEXT_SECONDARY))
-                painter.drawText(int(x_leg) + 15, int(y_leg), label_full)
-                
-                # Przesunięcie
-                w_text = painter.fontMetrics().horizontalAdvance(label_full)
-                x_leg += w_text + 35
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(color)
+            painter.drawEllipse(int(x_leg), int(y_leg) - 8, 8, 8)
+
+            label_full = f"{label} ({int(round(val / total * 100))}%)"
+            painter.setPen(QColor(styles.TEXT_SECONDARY))
+            painter.drawText(int(x_leg) + 14, int(y_leg), label_full)
+
+            w_text = painter.fontMetrics().horizontalAdvance(label_full)
+            x_leg += 14 + w_text + 24

@@ -3,6 +3,8 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimationGroup
 
+import styles
+
 
 
 class NotificationPopup(QWidget):
@@ -44,7 +46,7 @@ class NotificationPopup(QWidget):
         text_lbl = QLabel(message)
         text_lbl.setAlignment(Qt.AlignCenter)
         text_lbl.setStyleSheet(
-            "font-size: 13px; font-weight: 500; border: none; "
+            f"font-size: {styles.font_px(13)}px; font-weight: 500; border: none; "
             "background: transparent; padding: 4px 12px;"
         )
         frame_layout.addWidget(text_lbl)

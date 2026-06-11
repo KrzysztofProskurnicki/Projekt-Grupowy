@@ -52,7 +52,7 @@ class PasswordItemWidget(QWidget):
             color: white;
             border-radius: 24px;
             font-weight: bold;
-            font-size: 22px;
+            font-size: {styles.font_px(22)}px;
             border: none;
         """)
         hbox.addWidget(icon_lbl)
@@ -66,13 +66,13 @@ class PasswordItemWidget(QWidget):
         
         title_lbl = QLabel(title)
         title_lbl.setStyleSheet(
-            f"font-size: 24px; font-weight: 600; color: {TEXT_PRIMARY}; "
+            f"font-size: {styles.font_px(24)}px; font-weight: 600; color: {TEXT_PRIMARY}; "
             f"border: none; background: transparent;"
         )
         
         subtitle_lbl = QLabel(subtitle)
         subtitle_lbl.setStyleSheet(
-            f"font-size: 16px; color: {TEXT_SECONDARY}; "
+            f"font-size: {styles.font_px(16)}px; color: {TEXT_SECONDARY}; "
             f"border: none; background: transparent;"
         )
         
@@ -85,13 +85,13 @@ class PasswordItemWidget(QWidget):
         # Ikona ulubionego wpisu
         if favorite:
             fav_lbl = QLabel("⭐")
-            fav_lbl.setStyleSheet("font-size: 16px; background: transparent; border: none;")
+            fav_lbl.setStyleSheet(f"font-size: {styles.font_px(16)}px; background: transparent; border: none;")
             hbox.addWidget(fav_lbl)
             
         # Chevron
         chevron = QLabel("›")
         chevron.setStyleSheet(
-            f"color: {TEXT_SECONDARY}; font-size: 24px; font-weight: bold; "
+            f"color: {TEXT_SECONDARY}; font-size: {styles.font_px(24)}px; font-weight: bold; "
             f"background: transparent; border: none;"
         )
         hbox.addWidget(chevron)

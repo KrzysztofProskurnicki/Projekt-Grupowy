@@ -2,8 +2,10 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
+from widgets.icons import tinted_pixmap
 from services.authentication_service import AuthenticationService
 from constants import MSG_INCORRECT_PASSWORD, MSG_ENTER_USERNAME
+import styles
 
 
 class LoginDialog(QWidget):
@@ -21,6 +23,8 @@ class LoginDialog(QWidget):
     def init_ui(self):
         self.setWindowTitle("Password Manager")
         self.setFixedSize(450, 530)
+        # Treść dialogu jest na stałe ciemna, więc pasek tytułu też
+        styles.apply_titlebar_theme(self, "dark")
         self.setStyleSheet("""
             QWidget {
                 background-color: #1c1c1e;
@@ -61,20 +65,20 @@ class LoginDialog(QWidget):
         layout.setSpacing(20)
         
         # Ikona/tytuł
-        title_label = QLabel("🔐")
-        title_label.setStyleSheet("font-size: 48px;")
+        title_label = QLabel()
+        title_label.setPixmap(tinted_pixmap("lock", "#0a84ff", 56))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
         # Nazwa aplikacji
         app_label = QLabel("Password Manager")
-        app_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #f5f5f7;")
+        app_label.setStyleSheet(f"font-size: {styles.font_px(24)}px; font-weight: bold; color: #f5f5f7;")
         app_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(app_label)
         
         # Podtytuł
         subtitle = QLabel("Sign in to your account")
-        subtitle.setStyleSheet("font-size: 14px; color: #98989d;")
+        subtitle.setStyleSheet(f"font-size: {styles.font_px(14)}px; color: #98989d;")
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
         
@@ -94,7 +98,7 @@ class LoginDialog(QWidget):
         
         # Etykieta błędu (domyślnie ukryta)
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: #ff453a; font-size: 14px;")
+        self.error_label.setStyleSheet(f"color: #ff453a; font-size: {styles.font_px(14)}px;")
         self.error_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.error_label)
         

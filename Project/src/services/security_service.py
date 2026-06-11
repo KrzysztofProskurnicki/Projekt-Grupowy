@@ -4,26 +4,82 @@ from typing import List, Dict, Any
 import zxcvbn
 
 
+def _entry_level(p: Dict[str, Any]) -> str:
+    """Poziom siły wpisu z fallbackiem na starą flagę weak_password."""
+    level = p.get('strength')
+    if level in ('weak', 'medium', 'strong'):
+        return level
+    return 'weak' if p.get('weak_password', False) else 'strong'
+
+
 class SecurityService:
     """Udostępnia analize bezpieczeństwa haseł"""
-    
+
+    @staticmethod
+    def evaluate_password(password: str) -> Dict[str, Any]:
+        """Oceń pojedyncze hasło: poziom, score 0-100, słownikowość, czas złamania.
+
+        Słownikowość: zxcvbn dopasowuje fragmenty do słowników (popularne
+        hasła, słowa angielskie, imiona, wzorce l33t). Hasło uznajemy za
+        słownikowe, gdy dopasowania słownikowe pokrywają >= 50% jego długości.
+        Score bazuje na guesses_log10 (rzędy wielkości liczby prób), ze
+        zniżką za słownikowość.
+        """
+        if not password:
+            return {'level': 'weak', 'score': 0, 'dictionary': False,
+                    'crack_time': 'instant'}
+        try:
+            result = zxcvbn.zxcvbn(password)
+        except Exception:
+            return {'level': 'weak', 'score': 0, 'dictionary': False,
+                    'crack_time': 'Unknown'}
+
+        dict_chars = sum(
+            len(m.get('token', ''))
+            for m in result.get('sequence', [])
+            if m.get('pattern') == 'dictionary'
+        )
+        dictionary = (dict_chars / len(password)) >= 0.5
+
+        # guesses_log10 ~12 odpowiada praktycznie nielamalnemu hasłu
+        score = int(round(float(result['guesses_log10']) * 9))
+        if dictionary:
+            score -= 25
+        score = max(0, min(100, score))
+
+        if score >= 65:
+            level = 'strong'
+        elif score >= 35:
+            level = 'medium'
+        else:
+            level = 'weak'
+
+        return {
+            'level': level,
+            'score': score,
+            'dictionary': dictionary,
+            'crack_time': result['crack_times_display']['offline_slow_hashing_1e4_per_second'],
+        }
+
     @staticmethod
     def calculate_security_score(passwords: List[Dict[str, Any]]) -> int:
-        """Oblicza ogólny wynik bezpieczeństwa na podstawie siły haseł
+        """Oblicza ogólny wynik bezpieczeństwa (0-100).
 
-        Zwraca:
-            Wynik bezpieczeństwa od 0 do 100
+        Średnia ze score poszczególnych haseł; dla wpisów bez score
+        (stare dane) przyjmuje 80 dla silnych, 50 dla średnich, 15 dla słabych.
         """
         total = len(passwords)
         if total == 0:
             return 0
-        
-        weak = sum(1 for p in passwords if p.get('weak_password', False))
-        strong = total - weak
-        
-        # Wzór wyniku: bazuje na udziale silnych haseł i słabych haseł
-        score = int(max(0, min(100, (strong / total * 100) - (weak * 5))))
-        return score
+
+        fallback = {'strong': 80, 'medium': 50, 'weak': 15}
+        acc = 0
+        for p in passwords:
+            score = p.get('pw_score')
+            if score is None:
+                score = fallback[_entry_level(p)]
+            acc += score
+        return int(round(acc / total))
     
     @staticmethod
     def get_crack_time(password: str) -> str:
@@ -76,13 +132,16 @@ class SecurityService:
             Słownik z licznikami total, weak, strong i favorites
         """
         total = len(passwords)
-        weak = sum(1 for p in passwords if p.get('weak_password', False))
-        strong = total - weak
+        levels = [_entry_level(p) for p in passwords]
+        weak = levels.count('weak')
+        medium = levels.count('medium')
+        strong = levels.count('strong')
         favorites = sum(1 for p in passwords if p.get('favorite', False))
-        
+
         return {
             'total': total,
             'weak': weak,
+            'medium': medium,
             'strong': strong,
             'favorites': favorites
         }

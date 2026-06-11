@@ -13,7 +13,7 @@ CONFIG_FILE = os.path.join(PROJECT_DIR, 'config', 'config.json')
 DB_FILE = os.path.join(PROJECT_DIR, 'data', 'vault.db')
 
 # Ustawienia aplikacji
-WINDOW_TITLE = "Password Manager UI"
+WINDOW_TITLE = "Password Manager"
 WINDOW_WIDTH = 1500
 WINDOW_HEIGHT = 1000
 WINDOW_MIN_WIDTH = 1500
