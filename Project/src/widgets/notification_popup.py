@@ -3,6 +3,8 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QFrame, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QParallelAnimationGroup
 
+import styles
+
 
 
 class NotificationPopup(QWidget):
