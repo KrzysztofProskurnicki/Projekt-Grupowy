@@ -56,7 +56,6 @@ class PasswordService:
             "password": password,
             "notes": self._decrypt_optional(entry.enc_notes),
             "color": entry.color,
-            "weak_password": ev["level"] == "weak",
             "strength": ev["level"],
             "pw_score": ev["score"],
             "dictionary": ev["dictionary"],
@@ -72,7 +71,7 @@ class PasswordService:
         return [p for p in self._cache if p.get("favorite", False)]
 
     def get_weak_passwords(self) -> List[Dict[str, Any]]:
-        return [p for p in self._cache if p.get("weak_password", False)]
+        return [p for p in self._cache if p.get("strength") == "weak"]
 
     def search_passwords(self, query: str) -> List[Dict[str, Any]]:
         q = query.lower()
@@ -88,7 +87,7 @@ class PasswordService:
         return sum(1 for p in self._cache if p.get("favorite", False))
 
     def get_weak_count(self) -> int:
-        return sum(1 for p in self._cache if p.get("weak_password", False))
+        return sum(1 for p in self._cache if p.get("strength") == "weak")
 
     # --- API zapisu ---
 
@@ -114,7 +113,6 @@ class PasswordService:
         color = password_data.get("color", "#333333")
         favorite = bool(password_data.get("favorite", False))
         ev = SecurityService.evaluate_password(password)
-        weak = ev["level"] == "weak"
 
         enc_email = crypto_manager.encrypt(email) if email else None
         enc_password = crypto_manager.encrypt(password) if password else None
@@ -127,7 +125,7 @@ class PasswordService:
                 name=name,
                 color=color,
                 favorite=favorite,
-                weak_password=weak,
+                weak_password=(ev["level"] == "weak"),
                 enc_email=enc_email,
                 enc_password=enc_password,
                 enc_notes=enc_notes,
@@ -139,7 +137,6 @@ class PasswordService:
             "password": password,
             "notes": notes,
             "color": color,
-            "weak_password": weak,
             "strength": ev["level"],
             "pw_score": ev["score"],
             "dictionary": ev["dictionary"],
@@ -157,7 +154,6 @@ class PasswordService:
         notes = password_data.get("notes", "")
         color = password_data.get("color", "#333333")
         ev = SecurityService.evaluate_password(password)
-        weak = ev["level"] == "weak"
 
         enc_email = crypto_manager.encrypt(email) if email else None
         enc_password = crypto_manager.encrypt(password) if password else None
@@ -170,7 +166,7 @@ class PasswordService:
                 original_name,
                 name=name,
                 color=color,
-                weak_password=weak,
+                weak_password=(ev["level"] == "weak"),
                 enc_email=enc_email,
                 enc_password=enc_password,
                 enc_notes=enc_notes,
@@ -186,13 +182,22 @@ class PasswordService:
                     "password": password,
                     "notes": notes,
                     "color": color,
-                    "weak_password": weak,
                     "strength": ev["level"],
                     "pw_score": ev["score"],
                     "dictionary": ev["dictionary"],
                 })
                 break
         return True
+
+    def delete_password(self, name: str) -> bool:
+        """Usuń wpis z sejfu i z cache."""
+        if self._user_id is None:
+            return False
+        with vault_repository.session_scope() as session:
+            deleted = vault_repository.delete_entry(session, self._user_id, name)
+        if deleted:
+            self._cache = [e for e in self._cache if e["name"] != name]
+        return deleted
 
     # --- eksport ---
 
@@ -209,4 +214,3 @@ class PasswordService:
                     entry.get("email", ""),
                     entry.get("password", ""),
                 ])
-

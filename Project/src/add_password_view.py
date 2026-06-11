@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QSizePolicy)
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon
+
 from widgets.icons import tinted_pixmap
 from services.password_generator import generate_strong_password
 
@@ -269,7 +270,6 @@ class AddPasswordModal(QWidget):
                 "notes": notes,
                 # Kolor i status ulubionego zostają z oryginału
                 "color": self._edit_entry.get("color", "#333333"),
-                "weak_password": len(password) < 8,
                 "favorite": self._edit_entry.get("favorite", False),
             }
             self.password_edited.emit(original_name, edited)
@@ -288,7 +288,6 @@ class AddPasswordModal(QWidget):
             "password": password,
             "notes": notes,
             "color": color,
-            "weak_password": len(password) < 8,
             "favorite": False
         }
 

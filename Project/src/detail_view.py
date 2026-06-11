@@ -23,7 +23,7 @@ PASSWORD_MASK = "•" * 12
 class DetailView(QWidget):
 
     def __init__(self, switch_back_callback=None, favorite_callback=None,
-                 edit_callback=None):
+                 edit_callback=None, delete_callback=None):
         """Inicjalizuj panel szczegółów.
 
         Argumenty:
@@ -31,11 +31,13 @@ class DetailView(QWidget):
                 przycisku powrotu - nawigacja przez sidebar).
             favorite_callback: Funkcja przełączająca status ulubionego wpisu.
             edit_callback: Funkcja otwierająca edycję bieżącego wpisu (dict).
+            delete_callback: Funkcja usuwająca bieżący wpis (nazwa).
         """
         super().__init__()
         self.switch_back_callback = switch_back_callback
         self.favorite_callback = favorite_callback
         self.edit_callback = edit_callback
+        self.delete_callback = delete_callback
         self.current_name = ""
         self._last_entry = None
 
@@ -165,11 +167,35 @@ class DetailView(QWidget):
         """)
         self.edit_btn.clicked.connect(self._on_edit_clicked)
 
+        # Usuwanie wpisu - czerwony przycisk wtórny z koszem (obok Edit)
+        self.remove_btn = QPushButton("  Remove")
+        self.remove_btn.setIcon(QIcon(tinted_pixmap("trash-2", styles.COLOR_RED, 16)))
+        self.remove_btn.setIconSize(QSize(16, 16))
+        self.remove_btn.setCursor(Qt.PointingHandCursor)
+        self.remove_btn.setFixedHeight(styles.font_px(36))
+        self.remove_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {styles.RAISED_BG};
+                color: {styles.COLOR_RED};
+                border: 1px solid {styles.HAIRLINE_STRONG};
+                border-radius: 8px;
+                padding: 0px 14px;
+                font-size: {styles.font_px(13)}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {styles.RED_SOFT};
+                border: 1px solid {styles.COLOR_RED};
+            }}
+        """)
+        self.remove_btn.clicked.connect(self._on_remove_clicked)
+
         header_layout.addWidget(self.icon_label, 0, Qt.AlignTop)
         header_layout.addLayout(title_box)
         header_layout.addStretch()
         header_layout.addWidget(self.star_btn, 0, Qt.AlignTop)
         header_layout.addWidget(self.edit_btn, 0, Qt.AlignTop)
+        header_layout.addWidget(self.remove_btn, 0, Qt.AlignTop)
 
         self.main_layout.addLayout(header_layout)
         self.main_layout.addSpacing(16)
@@ -359,6 +385,11 @@ class DetailView(QWidget):
         """Otwórz modal edycji bieżącego wpisu."""
         if self.edit_callback and self._last_entry:
             self.edit_callback(dict(self._last_entry))
+
+    def _on_remove_clicked(self):
+        """Usuń bieżący wpis (potwierdzenie po stronie głównego okna)."""
+        if self.delete_callback and self.current_name:
+            self.delete_callback(self.current_name)
 
     def toggle_favorite(self):
         self.is_favorite = not self.is_favorite
