@@ -3,13 +3,12 @@
 from typing import List, Dict, Any
 import zxcvbn
 
+from services.polish_dictionary import POLISH_WORD_LIST
+
 
 def _entry_level(p: Dict[str, Any]) -> str:
-    """Poziom siły wpisu z fallbackiem na starą flagę weak_password."""
-    level = p.get('strength')
-    if level in ('weak', 'medium', 'strong'):
-        return level
-    return 'weak' if p.get('weak_password', False) else 'strong'
+    """Zwraca poziom siły wpisu ('weak', 'medium', 'strong')."""
+    return p.get('strength', 'weak')
 
 
 class SecurityService:
@@ -29,7 +28,8 @@ class SecurityService:
             return {'level': 'weak', 'score': 0, 'dictionary': False,
                     'crack_time': 'instant'}
         try:
-            result = zxcvbn.zxcvbn(password)
+            # Przekazanie dodatkowego słownika do zxcvbn
+            result = zxcvbn.zxcvbn(password, user_inputs=POLISH_WORD_LIST)
         except Exception:
             return {'level': 'weak', 'score': 0, 'dictionary': False,
                     'crack_time': 'Unknown'}
